@@ -4,6 +4,9 @@ module Position
      , PositionRow(..)
      , makeValidPosition
      , radiatingPositionRows
+     , positionRec
+     , adjacentPositions
+     , isValidPositionRec
      )
      where
 
@@ -12,9 +15,7 @@ import Prelude
 import BoardSize (boardSize)
 import Data.Array as Array
 import Data.Either (Either(..), either, fromRight, isRight)
-import Data.Foldable (and)
-import Data.List (List(..), foldr, filter, fromFoldable, length, null, snoc, zipWith)
-import Data.Record (equal)
+import Data.List (List(..), foldr, filter, fromFoldable, null, snoc)
 import Lib (haskellRange)
 import Partial.Unsafe (unsafePartial, unsafeCrashWith)
 
@@ -28,6 +29,9 @@ newtype PositionRow = PositionRow (List Position)
 data Dir = Inc | Dec
 
 
+derive instance eqPosition :: Eq Position
+derive instance eqPositionRow :: Eq PositionRow
+
 instance showPosition :: Show Position where
     show (Position ({x: i, y: j})) = 
         "Position {x: " <> show i <> ", y: " <> show j <> "}"
@@ -36,17 +40,6 @@ instance showPosition :: Show Position where
 instance showPositionRow :: Show PositionRow where
     show (PositionRow list) =
         "PositionRow> " <> (foldr append "" $ map (\p -> show p <> " ") list)
-
-
-instance eqPosition :: Eq Position where
-    eq (Position rec1) (Position rec2) = 
-        equal rec1 rec2
-
-
-instance eqPositionRow :: Eq PositionRow where
-    eq (PositionRow list1) (PositionRow list2) =    
-        (length list1 == length list2) && 
-            (and $ zipWith eq list1 list2)
 
 
 isValidPositionRec :: PositionRec -> Boolean
