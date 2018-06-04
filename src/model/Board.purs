@@ -319,7 +319,6 @@ squaresColored color xs =
     filter (\ x -> isSquareColored color x) xs        
 
 
-
 colorCount :: Color -> Board -> Int
 colorCount color board =
     filledSquares board
