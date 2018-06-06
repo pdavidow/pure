@@ -15,6 +15,17 @@ module Board
     , boardFromConfig
     , applyBoardMove
     , filledPositions
+    , squaresColoredCounts_BlackWhite
+    , moveColor
+    , filledSquares
+    , toFilledSquare
+    , isSquareColored
+    , isEmptyAt
+    , boardSquaresColored
+    , cornerCounts_BlackWhite
+    , filledSquaresAdjacentToEmptyCorners
+    , movePositionChoices
+    , boardElems
     )
     where
       
@@ -22,7 +33,7 @@ import Prelude
 
 import BoardSize (boardSize)
 import Data.Array as Array
-import Data.List (List(..), nub, null, any, concatMap, filter, foldl, fromFoldable, head, tail, takeWhile, length, mapMaybe)
+import Data.List (List(..), nub, null, any, concatMap, filter, foldl, fromFoldable, head, tail, takeWhile, length, mapMaybe, range, zipWith)
 import Data.Maybe (Maybe(..), fromJust)
 import Data.Tuple (Tuple(..))
 import Disk (Disk, Color(..), diskColor, flipDisk, makeDisk, toggleColor)
@@ -128,7 +139,7 @@ place disk taggedSquare board =
        
 fillAt :: EmptySquare -> Disk -> Board -> Board
 fillAt emptySquare@(EmptySquare pos _) disk board =
-    updateBoard pos val board
+    updateBoardAt pos val board
         where val = Tagged_FilledSquare $ makeFilledSquare disk emptySquare
 
 
@@ -139,8 +150,8 @@ flipAt taggedSquare board =
         Tagged_FilledSquare (FilledSquare disk emptySquare) -> fillAt emptySquare (flipDisk disk) board
 
 
-updateBoard :: Position -> Tagged_Square -> Board -> Board
-updateBoard pos val (Board array2D) =     
+updateBoardAt :: Position -> Tagged_Square -> Board -> Board
+updateBoardAt pos val (Board array2D) =     
     let
         ({x: i, y: j}) = positionRec pos
 
@@ -408,3 +419,9 @@ filledSquaresAdjacentToEmptyCorners board =
     emptyCorners board
         # concatMap (adjacentPositions <<< toPosition <<< Tagged_EmptySquare)
         # mapMaybe (toFilledSquare <<< boardAt board)        
+
+
+movePositionChoices :: List Move -> List {index :: Int, position ::Position}
+movePositionChoices xs =
+    -- 1 based
+    zipWith (\ i p -> {index: i, position: p}) (range (1 :: Int) $ length xs) $ map movePosition xs         
