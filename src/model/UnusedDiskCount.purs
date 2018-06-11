@@ -8,7 +8,6 @@ module UnusedDiskCount
     , transferDiskTo
     , decreaseByOneFor
     , countFrom
-    , applyToUnusedDiskCounts
     )
     where
 
@@ -55,18 +54,6 @@ isZeroCount tagged =
         case tagged of
             Tagged_BlackUnusedDiskCount (BlackUnusedDiskCount x) -> f x
             Tagged_WhiteUnusedDiskCount (WhiteUnusedDiskCount x) -> f x    
-
--- todo unused?
-applyToCount :: (Int -> Int) -> Tagged_UnusedDiskCount -> Tagged_UnusedDiskCount
-applyToCount f tagged =
-    case tagged of
-        Tagged_BlackUnusedDiskCount (BlackUnusedDiskCount x) -> Tagged_BlackUnusedDiskCount $ BlackUnusedDiskCount $ f x
-        Tagged_WhiteUnusedDiskCount (WhiteUnusedDiskCount x) -> Tagged_WhiteUnusedDiskCount $ WhiteUnusedDiskCount $ f x
-
--- todo remove? ... simply inline...
-applyToUnusedDiskCounts :: (UnusedDiskCounts -> UnusedDiskCounts) -> UnusedDiskCounts -> UnusedDiskCounts
-applyToUnusedDiskCounts f x =
-    f x  
 
 
 subtractOneForPositive :: Int -> Int
