@@ -26,6 +26,9 @@ module Board
     , filledSquaresAdjacentToEmptyCorners
     , movePositionChoices
     , boardElems
+    , emptySquares
+    , diskFrom
+    --, flipAt -- Should NOT be exposed (but ok to temp expose for sake of commented-out test)
     )
     where
       

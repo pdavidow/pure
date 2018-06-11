@@ -12,16 +12,18 @@ module GameState
     , core_FromTaggedState
     , mbNextMoveColor_FromTaggedState
     , nextMoves_FromTaggedState
+    , nextMovesFrom
     , applyMoveOnState
     , colorResultingInTaggedState
     , actual_UnusedDiskCounts_FromTaggedState_BlackWhite
     , isZeroUnusedDiskCount
     , isForfeitTurn
+    , makeStartStateOn -- todo only used in testing
     )
     where
       
 import Prelude      
-import UnusedDiskCount (UnusedDiskCounts, Tagged_UnusedDiskCount(..), makeBlackUnusedDiskCount, makeWhiteUnusedDiskCount, isZeroCount, transferDiskTo, decreaseByOneFor, countFrom)
+import UnusedDiskCount (UnusedDiskCounts, Tagged_UnusedDiskCount(..), makeUnusedDiskCounts, isZeroCount, transferDiskTo, decreaseByOneFor, countFrom)
 import Data.List (List(..), null)
 import Board ( Board, Move(..), Tagged_Square(..), applyBoardMove, initialBoard, squaresColoredCounts_BlackWhite, validMoves, moveColor, boardAt, filledSquares, toFilledSquare, isSquareColored, isEmptyAt, boardSquaresColored, cornerCounts_BlackWhite, filledSquaresAdjacentToEmptyCorners ) 
 import Disk (Color(..), toggleColor)
@@ -59,16 +61,28 @@ data Winner
     | Tie
 
 
+derive instance eqCore :: Eq Core    
+derive instance eqStartState :: Eq StartState
+derive instance eqMidState :: Eq MidState
+derive instance eqEndState :: Eq EndState
+derive instance eqTagged_State :: Eq Tagged_State
+derive instance eqMidStatus :: Eq MidStatus
+derive instance eqEndStatus :: Eq EndStatus
+
+
+makeStartStateOn :: Board -> StartState
+makeStartStateOn board =
+    StartState 
+        { color: color
+        , nextMoves: nextMovesFrom color board
+        , core: Core makeUnusedDiskCounts board
+        } 
+            where color = Black -- Rule 1: Black always moves first 
+
+
 makeStartState :: StartState
 makeStartState =
-    let
-        color = Black -- Rule 1: Black always moves first.
-        board = initialBoard
-        nextMoves = nextMovesFrom color board
-        core = Core (makeBlackWhiteH makeBlackUnusedDiskCount makeWhiteUnusedDiskCount) board
-    in
-        StartState {color: color , nextMoves: nextMoves, core: core} 
-
+    makeStartStateOn initialBoard
 
 
 nextMovesFrom :: Color -> Board -> NextMoves

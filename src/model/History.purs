@@ -24,6 +24,8 @@ data MoveValidationError
     | NotOutflanking
     | DefaultDummy  
 
+derive instance eqMoveValidationError :: Eq MoveValidationError
+
 
 makeHistory :: NE.NonEmptyList Tagged_State
 makeHistory =

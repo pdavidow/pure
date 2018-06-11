@@ -6,9 +6,14 @@ module BlackWhite
     )
     where
 
+import Prelude
 
 data BlackWhite a = BlackWhite {black :: a, white :: a}
 data BlackWhiteH a b = BlackWhiteH {black :: a, white :: b}
+
+
+derive instance eqBlackWhite :: Eq a => Eq (BlackWhite a)
+derive instance eqBlackWhiteH :: (Eq a, Eq b) => Eq (BlackWhiteH a b)
 
 
 makeBlackWhite :: forall a. a -> a -> BlackWhite a
