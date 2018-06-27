@@ -1,7 +1,8 @@
 module Display
     ( Empty_NonMove_DisplaySquare(..)
     , Move_DisplaySquare(..)
-    , Filled_DisplaySquare(..)
+    , FilledSelf_DisplaySquare(..)
+    , FilledOpponent_DisplaySquare(..)
     , Tagged_DisplaySquare(..)
     , toDisplaySquare
     , toPosition
@@ -9,23 +10,40 @@ module Display
     where
 
 import Prelude
-import Data.Maybe (Maybe(..))
-import Data.List (List, find)
 import Board as B
-import Disk (Color)
+import Data.List (List, concatMap, elem, filter, find, nub)
+import Data.Maybe (Maybe(..))
+import Disk (Color, toggleColor)
 import Position (Position)
-import GameState (NextMoves)
 
-newtype Empty_NonMove_DisplaySquare = EmptyNonMove_DisplaySquare {position :: Position} 
+-- todo Arrays vs Lists ???
 
-data Move_DisplaySquare = Move_DisplaySquare {move :: B.Move, outflankPositions :: List Position}  
+newtype Empty_NonMove_DisplaySquare = EmptyNonMove_DisplaySquare 
+    { position :: Position
+    } 
 
-data Filled_DisplaySquare = Filled_DisplaySquare {position :: Position, color :: Color}  
+data Move_DisplaySquare = Move_DisplaySquare 
+    { move :: B.Move
+    , outflanks :: List Position
+    }  
+
+data FilledSelf_DisplaySquare = FilledSelf_DisplaySquare 
+    { position :: Position
+    , color :: Color
+    }  
+
+data FilledOpponent_DisplaySquare = FilledOpponent_DisplaySquare 
+    { position :: Position
+    , color :: Color
+    , moves :: List Position    
+    , outflanks :: List Position
+    } 
 
 data Tagged_DisplaySquare 
     = Tagged_Empty_NonMove_DisplaySquare Empty_NonMove_DisplaySquare
     | Tagged_Move_DisplaySquare Move_DisplaySquare
-    | Tagged_Filled_DisplaySquare Filled_DisplaySquare
+    | Tagged_FilledSelf_DisplaySquare FilledSelf_DisplaySquare
+    | Tagged_FilledOpponent_DisplaySquare FilledOpponent_DisplaySquare
 
 
 instance eqMove_DisplaySquare :: Eq Move_DisplaySquare where
@@ -36,13 +54,14 @@ instance eqMove_DisplaySquare :: Eq Move_DisplaySquare where
 toPosition :: Tagged_DisplaySquare -> Position
 toPosition taggedDisplaySquare =
     case taggedDisplaySquare of
-        Tagged_Empty_NonMove_DisplaySquare (EmptyNonMove_DisplaySquare rec) -> rec.position
-        Tagged_Move_DisplaySquare (Move_DisplaySquare rec)                  -> B.movePosition rec.move
-        Tagged_Filled_DisplaySquare (Filled_DisplaySquare rec)              -> rec.position
+        Tagged_Empty_NonMove_DisplaySquare (EmptyNonMove_DisplaySquare rec)    -> rec.position
+        Tagged_Move_DisplaySquare (Move_DisplaySquare rec)                     -> B.movePosition rec.move
+        Tagged_FilledSelf_DisplaySquare (FilledSelf_DisplaySquare rec)         -> rec.position
+        Tagged_FilledOpponent_DisplaySquare (FilledOpponent_DisplaySquare rec) -> rec.position
 
 
-toDisplaySquare :: NextMoves -> B.Tagged_Square -> Tagged_DisplaySquare
-toDisplaySquare moves taggedSquare =
+toDisplaySquare :: Color -> List B.Move -> B.Tagged_Square -> Tagged_DisplaySquare
+toDisplaySquare moveColor moves taggedSquare =
     case taggedSquare of
         B.Tagged_EmptySquare _ ->
             let
@@ -58,11 +77,45 @@ toDisplaySquare moves taggedSquare =
                     Just move -> 
                         Tagged_Move_DisplaySquare $ Move_DisplaySquare 
                             { move: move
-                            , outflankPositions: B.outflankPositions move
+                            , outflanks: B.outflankPositions move
                             } 
 
         B.Tagged_FilledSquare x -> 
-            Tagged_Filled_DisplaySquare $ Filled_DisplaySquare 
-                { position: B.toPosition taggedSquare
-                , color: B.filledSquareColor x
-                }  
+            case moveColor == B.filledSquareColor x of
+                true ->
+                    Tagged_FilledSelf_DisplaySquare $ FilledSelf_DisplaySquare 
+                        { position: B.toPosition taggedSquare
+                        , color: moveColor
+                        }  
+
+                false ->
+                    Tagged_FilledOpponent_DisplaySquare $ FilledOpponent_DisplaySquare 
+                        { position: position
+                        , color: color
+                        , moves: movesForFilled                        
+                        , outflanks: outflanksForFilled
+                        }                  
+                    where
+
+                    position = B.toPosition taggedSquare
+                    color = toggleColor moveColor
+                    ({movePositions: movesForFilled, outflankPositions: outflanksForFilled}) = movesAndOutflanksForFilled position moves 
+
+
+movesAndOutflanksForFilled :: Position -> List B.Move -> {movePositions :: List Position, outflankPositions :: List Position}
+movesAndOutflanksForFilled position allMoves =     
+    let
+        moves = allMoves
+            # filter (\ move -> elem position $ B.outflankPositions move)
+            # nub 
+            
+        movePositions = moves
+            # map B.movePosition
+
+        outflankPositions = moves
+            # concatMap (\ move -> B.outflankPositions move)
+            # nub
+    in
+        {movePositions: movePositions, outflankPositions: outflankPositions}        
+
+ 
