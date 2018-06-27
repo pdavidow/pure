@@ -1,24 +1,24 @@
 module GameState
     ( Core(..)
-    , StartState(..)
-    , MidState(..)
-    , EndState(..)
-    , Tagged_State(..)
+    , StartGameState(..)
+    , MidGameState(..)
+    , EndGameState(..)
+    , Tagged_GameState(..)
     , MidStatus(..)
     , EndStatus(..)
     , NextMoves
-    , makeStartState
-    , board_FromTaggedState
-    , core_FromTaggedState
-    , mbNextMoveColor_FromTaggedState
-    , nextMoves_FromTaggedState
+    , makeStartGameState
+    , board_FromTaggedGameState
+    , core_FromTaggedGameState
+    , mbNextMoveColor_FromTaggedGameState
+    , nextMoves_FromTaggedGameState
     , nextMovesFrom
-    , applyMoveOnState
-    , colorResultingInTaggedState
-    , actual_UnusedDiskCounts_FromTaggedState_BlackWhite
+    , applyMoveOnGameState
+    , colorResultingInTaggedGameState
+    , actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite
     , isZeroUnusedDiskCount
     , isForfeitTurn
-    , makeStartStateOn -- todo only used in testing
+    , makeStartGameStateOn -- todo only used in testing
     )
     where
       
@@ -32,18 +32,18 @@ import Data.Maybe (Maybe(..))
 
 data Core = Core UnusedDiskCounts Board
 
-data StartState = StartState {color :: Color, nextMoves :: NextMoves, core :: Core}
+data StartGameState = StartGameState {color :: Color, nextMoves :: NextMoves, core :: Core}
 
-data MidState = MidState {priorMove :: Move, status :: MidStatus, nextMoves :: NextMoves, core :: Core}
+data MidGameState = MidGameState {priorMove :: Move, status :: MidStatus, nextMoves :: NextMoves, core :: Core}
 
-data EndState = EndState {priorMove :: Move, status :: EndStatus, core :: Core}
+data EndGameState = EndGameState {priorMove :: Move, status :: EndStatus, core :: Core}
 
 type NextMoves = List Move
 
-data Tagged_State
-    = Tagged_StartState StartState
-    | Tagged_MidState   MidState
-    | Tagged_EndState   EndState
+data Tagged_GameState
+    = Tagged_StartGameState StartGameState
+    | Tagged_MidGameState   MidGameState
+    | Tagged_EndGameState   EndGameState
 
 data MidStatus
     = Normal
@@ -62,17 +62,17 @@ data Winner
 
 
 derive instance eqCore :: Eq Core    
-derive instance eqStartState :: Eq StartState
-derive instance eqMidState :: Eq MidState
-derive instance eqEndState :: Eq EndState
-derive instance eqTagged_State :: Eq Tagged_State
+derive instance eqStartGameState :: Eq StartGameState
+derive instance eqMidGameState :: Eq MidGameState
+derive instance eqEndGameState :: Eq EndGameState
+derive instance eqTagged_GameState :: Eq Tagged_GameState
 derive instance eqMidStatus :: Eq MidStatus
 derive instance eqEndStatus :: Eq EndStatus
 
 
-makeStartStateOn :: Board -> StartState
-makeStartStateOn board =
-    StartState 
+makeStartGameStateOn :: Board -> StartGameState
+makeStartGameStateOn board =
+    StartGameState 
         { color: color
         , nextMoves: nextMovesFrom color board
         , core: Core makeUnusedDiskCounts board
@@ -80,9 +80,9 @@ makeStartStateOn board =
             where color = Black -- Rule 1: Black always moves first 
 
 
-makeStartState :: StartState
-makeStartState =
-    makeStartStateOn initialBoard
+makeStartGameState :: StartGameState
+makeStartGameState =
+    makeStartGameStateOn initialBoard
 
 
 nextMovesFrom :: Color -> Board -> NextMoves
@@ -97,32 +97,32 @@ isZeroUnusedDiskCount color (Core (BlackWhiteH {black: b, white: w}) _) =
         White -> isZeroCount $ Tagged_WhiteUnusedDiskCount w     
 
 
-applyMoveOnState :: Move -> Tagged_State -> Tagged_State
-applyMoveOnState move taggedState =
+applyMoveOnGameState :: Move -> Tagged_GameState -> Tagged_GameState
+applyMoveOnGameState move taggedGameState =
     let
-        makeMidState :: MidState
-        makeMidState =
+        makeMidGameState :: MidGameState
+        makeMidGameState =
             let
-                (Core unusedDiskCounts board) = core_FromTaggedState taggedState
+                (Core unusedDiskCounts board) = core_FromTaggedGameState taggedGameState
                 color = moveColor move
                 unusedDiskCounts' = decreaseByOneFor color unusedDiskCounts
                 board' = applyBoardMove move board
             in
-                MidState 
+                MidGameState 
                     { priorMove: move
                     , status: Normal
                     , nextMoves: nextMovesFrom (toggleColor color) board'
                     , core: Core unusedDiskCounts' board'
                     }
     in
-        case taggedState of
-            Tagged_StartState _ -> processMidState makeMidState
-            Tagged_MidState   _ -> processMidState makeMidState
-            Tagged_EndState   _ -> taggedState -- should never get here    
+        case taggedGameState of
+            Tagged_StartGameState _ -> processMidGameState makeMidGameState
+            Tagged_MidGameState   _ -> processMidGameState makeMidGameState
+            Tagged_EndGameState   _ -> taggedGameState -- should never get here    
 
 
-processMidState :: MidState -> Tagged_State
-processMidState midState@(MidState {priorMove: priorMove, status: _, nextMoves: nextMoves, core: core@(Core unusedDiskCounts board)}) =
+processMidGameState :: MidGameState -> Tagged_GameState
+processMidGameState midGameState@(MidGameState {priorMove: priorMove, status: _, nextMoves: nextMoves, core: core@(Core unusedDiskCounts board)}) =
     let
         priorColor = moveColor priorMove
         nextColor = toggleColor priorColor
@@ -132,26 +132,26 @@ processMidState midState@(MidState {priorMove: priorMove, status: _, nextMoves: 
 
         nextMoves' = nextMovesFrom priorColor board
         
-        end_NoValidMoves :: Tagged_State
+        end_NoValidMoves :: Tagged_GameState
         end_NoValidMoves = 
-            Tagged_EndState $ EndState {priorMove: priorMove, status: NoValidMoves, core: core}
+            Tagged_EndGameState $ EndGameState {priorMove: priorMove, status: NoValidMoves, core: core}
         
-        end_NoUnusedDisksForBoth :: Tagged_State
+        end_NoUnusedDisksForBoth :: Tagged_GameState
         end_NoUnusedDisksForBoth = 
-            Tagged_EndState $ EndState {priorMove: priorMove, status: NoUnusedDisksForBoth, core: core}
+            Tagged_EndGameState $ EndGameState {priorMove: priorMove, status: NoUnusedDisksForBoth, core: core}
 
-        forfeitTurn :: Tagged_State
+        forfeitTurn :: Tagged_GameState
         forfeitTurn = 
-            Tagged_MidState $ MidState {priorMove: priorMove, status: ForfeitTurn_Rule2, nextMoves: nextMoves', core: core}
+            Tagged_MidGameState $ MidGameState {priorMove: priorMove, status: ForfeitTurn_Rule2, nextMoves: nextMoves', core: core}
 
-        transferDisk :: Tagged_State
+        transferDisk :: Tagged_GameState
         transferDisk = 
-            Tagged_MidState $ MidState {priorMove: priorMove, status: TransferDisk_Rule9, nextMoves: nextMoves, core: Core unusedDiskCounts' board}
+            Tagged_MidGameState $ MidGameState {priorMove: priorMove, status: TransferDisk_Rule9, nextMoves: nextMoves, core: Core unusedDiskCounts' board}
                 where unusedDiskCounts' = transferDiskTo nextColor unusedDiskCounts
 
-        passThru :: Tagged_State
+        passThru :: Tagged_GameState
         passThru = 
-            Tagged_MidState midState
+            Tagged_MidGameState midGameState
     in
         if null nextMoves then 
             if null nextMoves' then
@@ -167,82 +167,81 @@ processMidState midState@(MidState {priorMove: priorMove, status: _, nextMoves: 
             passThru               
 
 
-core_FromTaggedState :: Tagged_State -> Core
-core_FromTaggedState taggedState =
-    case taggedState of
-        Tagged_StartState (StartState {color: _, nextMoves: _, core: x}) -> x
-        Tagged_MidState (MidState {priorMove: _, status: _, nextMoves: _, core: x}) -> x
-        Tagged_EndState (EndState {priorMove: _, status: _, core: x}) -> x
+core_FromTaggedGameState :: Tagged_GameState -> Core
+core_FromTaggedGameState taggedGameState =
+    case taggedGameState of
+        Tagged_StartGameState (StartGameState rec) -> rec.core
+        Tagged_MidGameState (MidGameState rec)     -> rec.core
+        Tagged_EndGameState (EndGameState rec)     -> rec.core
 
 
-unusedDiskCounts_FromTaggedState :: Tagged_State -> UnusedDiskCounts
-unusedDiskCounts_FromTaggedState taggedState =
-    x where (Core x _) = core_FromTaggedState taggedState 
+unusedDiskCounts_FromTaggedGameState :: Tagged_GameState -> UnusedDiskCounts
+unusedDiskCounts_FromTaggedGameState taggedGameState =
+    x where (Core x _) = core_FromTaggedGameState taggedGameState 
 
 
-board_FromTaggedState :: Tagged_State -> Board
-board_FromTaggedState taggedState =
-    x where (Core _ x) = core_FromTaggedState taggedState        
+board_FromTaggedGameState :: Tagged_GameState -> Board
+board_FromTaggedGameState taggedGameState =
+    x where (Core _ x) = core_FromTaggedGameState taggedGameState        
 
 
-colorResultingInTaggedState :: Tagged_State -> Color
-colorResultingInTaggedState taggedState =
-    case taggedState of
-        Tagged_StartState (StartState {color: x, nextMoves: _, core: _}) -> x
-        Tagged_MidState (MidState {priorMove: (Move x _ _), status: _, nextMoves: _, core: _}) -> x
-        Tagged_EndState (EndState {priorMove: (Move x _ _), status: _, core: _}) -> x  
+colorResultingInTaggedGameState :: Tagged_GameState -> Color
+colorResultingInTaggedGameState taggedGameState =
+    case taggedGameState of
+        Tagged_StartGameState (StartGameState rec) -> rec.color
+        Tagged_MidGameState (MidGameState rec) -> moveColor rec.priorMove
+        Tagged_EndGameState (EndGameState rec) -> moveColor rec.priorMove
 
 
-mbNextMoveColor_FromTaggedState :: Tagged_State -> Maybe Color
-mbNextMoveColor_FromTaggedState taggedState =  
-    case taggedState of
-        Tagged_StartState (StartState {color: x, nextMoves: _, core: _}) -> Just x
-        Tagged_MidState midState -> Just $ nextMoveColor_FromMidState midState
-        Tagged_EndState _ -> Nothing        
+mbNextMoveColor_FromTaggedGameState :: Tagged_GameState -> Maybe Color
+mbNextMoveColor_FromTaggedGameState taggedGameState =  
+    case taggedGameState of
+        Tagged_StartGameState (StartGameState rec) -> Just rec.color
+        Tagged_MidGameState midGameState -> Just $ nextMoveColor_FromMidGameState midGameState
+        Tagged_EndGameState _ -> Nothing        
         
 
-nextMoveColor_FromMidState :: MidState -> Color
-nextMoveColor_FromMidState (MidState {priorMove: priorMove, status: status, nextMoves: _, core: _}) =  
-    case status of
-        Normal -> toggleColor $ moveColor priorMove
-        ForfeitTurn_Rule2 -> moveColor priorMove
-        TransferDisk_Rule9 -> toggleColor $ moveColor priorMove 
+nextMoveColor_FromMidGameState :: MidGameState -> Color
+nextMoveColor_FromMidGameState (MidGameState rec) =  
+    case rec.status of
+        Normal -> toggleColor $ moveColor rec.priorMove
+        ForfeitTurn_Rule2 -> moveColor rec.priorMove
+        TransferDisk_Rule9 -> toggleColor $ moveColor rec.priorMove 
 
 
-mbPriorMove_FromTaggedState :: Tagged_State -> Maybe Move
-mbPriorMove_FromTaggedState taggedState =    
-    case taggedState of
-        Tagged_StartState _ -> Nothing
-        Tagged_MidState (MidState {priorMove: x, status: _, nextMoves: _, core: _}) -> Just x
-        Tagged_EndState (EndState {priorMove: x, status: _, core: _}) -> Just x               
+mbPriorMove_FromTaggedGameState :: Tagged_GameState -> Maybe Move
+mbPriorMove_FromTaggedGameState taggedGameState =    
+    case taggedGameState of
+        Tagged_StartGameState _                -> Nothing
+        Tagged_MidGameState (MidGameState rec) -> Just rec.priorMove
+        Tagged_EndGameState (EndGameState rec) -> Just rec.priorMove               
 
 
-nextMoves_FromTaggedState :: Tagged_State -> NextMoves
-nextMoves_FromTaggedState taggedState =
-    case taggedState of
-        Tagged_StartState (StartState {color: _, nextMoves: x, core: _}) -> x
-        Tagged_MidState (MidState {priorMove: _, status: _, nextMoves: x, core: _}) -> x
-        Tagged_EndState _ -> Nil      
+nextMoves_FromTaggedGameState :: Tagged_GameState -> NextMoves
+nextMoves_FromTaggedGameState taggedGameState =
+    case taggedGameState of
+        Tagged_StartGameState (StartGameState rec) -> rec.nextMoves
+        Tagged_MidGameState (MidGameState rec)     -> rec.nextMoves
+        Tagged_EndGameState _                      -> Nil      
         
  
-actual_UnusedDiskCounts_FromTaggedState_BlackWhite :: Tagged_State -> BlackWhite Int
-actual_UnusedDiskCounts_FromTaggedState_BlackWhite taggedState =   
+actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite :: Tagged_GameState -> BlackWhite Int
+actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite taggedGameState =   
     makeBlackWhite (countFrom $ Tagged_BlackUnusedDiskCount b) (countFrom $ Tagged_WhiteUnusedDiskCount w)
-       where (BlackWhiteH {black: b, white: w}) = unusedDiskCounts_FromTaggedState taggedState
+       where (BlackWhiteH {black: b, white: w}) = unusedDiskCounts_FromTaggedGameState taggedGameState
 
 
-isForfeitTurn :: Tagged_State -> Boolean
-isForfeitTurn taggedState = 
-    case taggedState of
-        Tagged_StartState _ ->
+isForfeitTurn :: Tagged_GameState -> Boolean
+isForfeitTurn taggedGameState = 
+    case taggedGameState of
+        Tagged_StartGameState _ ->
             false
 
-        Tagged_MidState (MidState {priorMove: _, status: status, nextMoves: _, core: _}) ->
-            case status of
+        Tagged_MidGameState (MidGameState rec) ->
+            case rec.status of
                 Normal -> false
                 ForfeitTurn_Rule2 -> true
                 TransferDisk_Rule9 -> false
 
-        Tagged_EndState _ -> 
-            false       
-     
+        Tagged_EndGameState _ -> 
+            false

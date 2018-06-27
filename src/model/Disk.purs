@@ -23,8 +23,8 @@ derive instance eqColor :: Eq Color
 derive instance ordColor :: Ord Color
 
 instance showDisk :: Show Disk where
-    show (Disk ({initColor: color, flipCount: count})) = 
-        "Disk {initColor: " <> show color <> ", flipCount: " <> show count <> "}"
+    show (Disk rec) = 
+        "Disk {initColor: " <> show rec.initColor <> ", flipCount: " <> show rec.flipCount <> "}"
 
 
 instance showColor :: Show Color where
@@ -40,11 +40,11 @@ makeDisk color =
 
 
 diskColor :: Disk -> Color
-diskColor (Disk ({initColor: color, flipCount: count})) =
-    if even count then 
-        color
+diskColor (Disk rec) =
+    if even rec.flipCount then 
+        rec.initColor
     else 
-        toggleColor color
+        toggleColor rec.initColor
 
 
 toggleColor :: Color -> Color
@@ -60,5 +60,5 @@ flipDisk (Disk ({initColor: color, flipCount: count})) =
 
 
 flipCount :: Disk -> Int
-flipCount (Disk ({initColor: color, flipCount: count})) =
-    count
+flipCount (Disk rec) =
+    rec.flipCount

@@ -19,15 +19,18 @@ module Board
     , moveColor
     , filledSquares
     , toFilledSquare
+    , filledSquareColor
     , isSquareColored
     , isEmptyAt
     , boardSquaresColored
     , cornerCounts_BlackWhite
     , filledSquaresAdjacentToEmptyCorners
+    , movePosition
     , movePositionChoices
     , boardElems
     , emptySquares
     , diskFrom
+    , outflankPositions
     --, flipAt -- Should NOT be exposed (but ok to temp expose for sake of commented-out test)
     )
     where
@@ -258,9 +261,14 @@ diskFrom (FilledSquare disk _) =
     disk
 
 
+filledSquareColor :: FilledSquare -> Color
+filledSquareColor filledSquare =
+    diskColor $ diskFrom filledSquare
+
+
 isSquareColored :: Color -> FilledSquare -> Boolean
 isSquareColored color filledSquare =
-    color == (diskColor $ diskFrom filledSquare)  
+    color == filledSquareColor filledSquare  
 
 
 isEmptySquare :: Tagged_Square -> Boolean

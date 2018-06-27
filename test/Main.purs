@@ -17,8 +17,8 @@ import Data.Maybe (Maybe(..), fromJust)
 import Data.Record (equal)
 import Data.Tuple (Tuple(..))
 import Disk (Color(..), flipCount, toggleColor)
-import GameState (Tagged_State(..), Core(..), StartState(..), MidState(..), EndState(..), MidStatus(..), EndStatus(..), actual_UnusedDiskCounts_FromTaggedState_BlackWhite, board_FromTaggedState, nextMoves_FromTaggedState, mbNextMoveColor_FromTaggedState, nextMovesFrom, makeStartState, makeStartStateOn, isForfeitTurn) 
-import History (MoveValidationError(..), applyMoveOnHistory, makeHistory, undoHistoryOnce)
+import GameState (Tagged_GameState(..), Core(..), StartGameState(..), MidGameState(..), EndGameState(..), MidStatus(..), EndStatus(..), actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite, board_FromTaggedGameState, nextMoves_FromTaggedGameState, mbNextMoveColor_FromTaggedGameState, nextMovesFrom, makeStartGameState, makeStartGameStateOn, isForfeitTurn) 
+import GameHistory (MoveValidationError(..), applyMoveOnHistory, makeHistory, undoHistoryOnce)
 import Lib (haskellRange, mapTakeWhile)
 import Partial.Unsafe (unsafePartial)
 import Position (Position, PositionRec, PositionRow(..), makeValidPosition, positionRec, radiatingPositionRows)
@@ -98,16 +98,16 @@ boardCustom4 =
         pure (Tuple White $ makeValidPosition {x: i, y: j})
 
 
-unsafeMidStateFrom :: Tagged_State -> MidState
-unsafeMidStateFrom taggedState =
-    unsafePartial $ case taggedState of
-        Tagged_MidState x -> x
+unsafeMidGameStateFrom :: Tagged_GameState -> MidGameState
+unsafeMidGameStateFrom taggedGameState =
+    unsafePartial $ case taggedGameState of
+        Tagged_MidGameState x -> x
 
 
-unsafeEndStateFrom :: Tagged_State -> EndState
-unsafeEndStateFrom taggedState =
-    unsafePartial $ case taggedState of
-        Tagged_EndState x -> x
+unsafeEndGameStateFrom :: Tagged_GameState -> EndGameState
+unsafeEndGameStateFrom taggedGameState =
+    unsafePartial $ case taggedGameState of
+        Tagged_EndGameState x -> x
 
 
 filledPositions_BlackWhite :: Board -> BlackWhite (Array (Array Int))         
@@ -423,42 +423,42 @@ main = runTest do
                     , [[3,3], [3,7], [4,3], [4,6], [5,3], [5,5], [6,3], [6,4], [7,3], [7,4], [7,5]]
                     ]
 
-    suite "GameState" do
+    suite "GameGameState" do
         test "start play" do
             let 
                 history1 = makeHistory
 
-                taggedState1 = NE.last history1
-                (BlackWhite {black: bp1, white: wp1}) = filledPositions_BlackWhite $ board_FromTaggedState taggedState1
-                moves1 = nextMoves_FromTaggedState taggedState1
+                taggedGameState1 = NE.last history1
+                (BlackWhite {black: bp1, white: wp1}) = filledPositions_BlackWhite $ board_FromTaggedGameState taggedGameState1
+                moves1 = nextMoves_FromTaggedGameState taggedGameState1
                 move1 = unsafePartial $ fromJust $ head moves1
                 history2 = unsafePartial $ fromRight $ applyMoveOnHistory move1 history1   
 
-                taggedState2 = NE.last history2
-                (BlackWhite {black: bp2, white: wp2}) = filledPositions_BlackWhite $ board_FromTaggedState taggedState2
-                moves2 = nextMoves_FromTaggedState taggedState2
+                taggedGameState2 = NE.last history2
+                (BlackWhite {black: bp2, white: wp2}) = filledPositions_BlackWhite $ board_FromTaggedGameState taggedGameState2
+                moves2 = nextMoves_FromTaggedGameState taggedGameState2
                 move2 = unsafePartial $ fromJust $ head moves2
                 history3 = unsafePartial $ fromRight $ applyMoveOnHistory move2 history2
             
-                taggedState3 = NE.last history3
-                (BlackWhite {black: bp3, white: wp3}) = filledPositions_BlackWhite $ board_FromTaggedState taggedState3
-                moves3 = nextMoves_FromTaggedState taggedState3
+                taggedGameState3 = NE.last history3
+                (BlackWhite {black: bp3, white: wp3}) = filledPositions_BlackWhite $ board_FromTaggedGameState taggedGameState3
+                moves3 = nextMoves_FromTaggedGameState taggedGameState3
                 move3 = unsafePartial $ fromJust $ head moves3
                 history4 = unsafePartial $ fromRight $ applyMoveOnHistory move3 history3
             
-                taggedState4 = NE.last history4    
-                (BlackWhite {black: bp4, white: wp4}) = filledPositions_BlackWhite $ board_FromTaggedState taggedState4     
+                taggedGameState4 = NE.last history4    
+                (BlackWhite {black: bp4, white: wp4}) = filledPositions_BlackWhite $ board_FromTaggedGameState taggedGameState4     
 
                 numberedMovesWithPos1 = movePositionChoices moves1
                 numberedMovesWithPos2 = movePositionChoices moves2
 
-                (BlackWhite {black: bc1, white: wc1}) = actual_UnusedDiskCounts_FromTaggedState_BlackWhite taggedState1
-                (BlackWhite {black: bc2, white: wc2}) = actual_UnusedDiskCounts_FromTaggedState_BlackWhite taggedState2
-                (BlackWhite {black: bc3, white: wc3}) = actual_UnusedDiskCounts_FromTaggedState_BlackWhite taggedState3
+                (BlackWhite {black: bc1, white: wc1}) = actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite taggedGameState1
+                (BlackWhite {black: bc2, white: wc2}) = actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite taggedGameState2
+                (BlackWhite {black: bc3, white: wc3}) = actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite taggedGameState3
 
-                (MidState {priorMove: priorMove2, status: _, nextMoves: _, core: _}) = unsafeMidStateFrom taggedState2
-                (MidState {priorMove: priorMove3, status: _, nextMoves: _, core: _}) = unsafeMidStateFrom taggedState3
-                (MidState {priorMove: priorMove4, status: _, nextMoves: _, core: _}) = unsafeMidStateFrom taggedState4
+                (MidGameState {priorMove: priorMove2, status: _, nextMoves: _, core: _}) = unsafeMidGameStateFrom taggedGameState2
+                (MidGameState {priorMove: priorMove3, status: _, nextMoves: _, core: _}) = unsafeMidGameStateFrom taggedGameState3
+                (MidGameState {priorMove: priorMove4, status: _, nextMoves: _, core: _}) = unsafeMidGameStateFrom taggedGameState4
 
             Assert.equal' "initial unused disk counts" [bc1, wc1] [32, 32]         
             Assert.equal' "unused disk counts after 1st move (Black)" [bc2, wc2] [31, 32]  
@@ -487,68 +487,68 @@ main = runTest do
             
         test "Black uses very last disk on first move (contrived)" do      
             let 
-                startState@(StartState {color: c, nextMoves: n, core: (Core unusedDiskCounts board)}) = makeStartState
-                (BlackWhite {black: bc, white: wc}) = actual_UnusedDiskCounts_FromTaggedState_BlackWhite $ Tagged_StartState startState
+                startGameState@(StartGameState {color: c, nextMoves: n, core: (Core unusedDiskCounts board)}) = makeStartGameState
+                (BlackWhite {black: bc, white: wc}) = actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite $ Tagged_StartGameState startGameState
                 unusedDiskCounts'  = unsafePartial $ fromJust $ LZ.index (LZ.iterate (decreaseByOneFor Black) unusedDiskCounts) $ bc - 1
                 unusedDiskCounts'' = unsafePartial $ fromJust $ LZ.index (LZ.iterate (decreaseByOneFor White) unusedDiskCounts') $ wc
 
-                taggedState1 = Tagged_StartState $ StartState {color: c, nextMoves: n, core: (Core unusedDiskCounts'' board)}
-                history1 = unsafePartial $ fromJust $ NE.fromList $ taggedState1 : Nil
-                moves1 = nextMoves_FromTaggedState taggedState1
+                taggedGameState1 = Tagged_StartGameState $ StartGameState {color: c, nextMoves: n, core: (Core unusedDiskCounts'' board)}
+                history1 = unsafePartial $ fromJust $ NE.fromList $ taggedGameState1 : Nil
+                moves1 = nextMoves_FromTaggedGameState taggedGameState1
                 move1 = unsafePartial $ fromJust $ head moves1
 
                 history2 = unsafePartial $ fromRight $ applyMoveOnHistory move1 history1 
-                (EndState {priorMove: _, status: endReason, core: _}) = unsafeEndStateFrom $ NE.last history2
+                (EndGameState {priorMove: _, status: endReason, core: _}) = unsafeEndGameStateFrom $ NE.last history2
 
             Assert.equal' "endReason" endReason NoUnusedDisksForBoth 
 
         test "Black on first move is confronted with full White board -- except for (1,1) which is Black, and (1,8) which is blank (contrived)" do
             let 
-                taggedState1 = Tagged_StartState $ makeStartStateOn boardCustom2 
-                history1 = unsafePartial $ fromJust $ NE.fromList $ taggedState1 : Nil
-                moves1 = nextMoves_FromTaggedState taggedState1
+                taggedGameState1 = Tagged_StartGameState $ makeStartGameStateOn boardCustom2 
+                history1 = unsafePartial $ fromJust $ NE.fromList $ taggedGameState1 : Nil
+                moves1 = nextMoves_FromTaggedGameState taggedGameState1
                 move1 = unsafePartial $ fromJust $ head moves1
 
                 history2 = unsafePartial $ fromRight $ applyMoveOnHistory move1 history1 
-                (EndState {priorMove: _, status: endReason, core: _}) = unsafeEndStateFrom $ NE.last history2
+                (EndGameState {priorMove: _, status: endReason, core: _}) = unsafeEndGameStateFrom $ NE.last history2
 
             Assert.equal' "endReason" endReason NoValidMoves 
 
         test "Black on first move is confronted with full White board -- except for (1,1) which is Black, and last column which is blank (contrived)" do
             let 
-                taggedState1 = Tagged_StartState $ makeStartStateOn boardCustom3
-                history1 = unsafePartial $ fromJust $ NE.fromList $ taggedState1 : Nil
-                moves1 = nextMoves_FromTaggedState taggedState1
+                taggedGameState1 = Tagged_StartGameState $ makeStartGameStateOn boardCustom3
+                history1 = unsafePartial $ fromJust $ NE.fromList $ taggedGameState1 : Nil
+                moves1 = nextMoves_FromTaggedGameState taggedGameState1
                 move1 = unsafePartial $ fromJust $ head moves1
 
                 history2 = unsafePartial $ fromRight $ applyMoveOnHistory move1 history1 
-                midState@(MidState {priorMove: _, status: status, nextMoves: _, core: _}) = unsafeMidStateFrom $ NE.last history2     
+                midGameState@(MidGameState {priorMove: _, status: status, nextMoves: _, core: _}) = unsafeMidGameStateFrom $ NE.last history2     
 
-            Assert.equal' "First move results in: Tagged_MidState, ForfeitTurn_Rule2" status ForfeitTurn_Rule2    
-            Assert.equal' "Second move color is also Black" (mbNextMoveColor_FromTaggedState $ Tagged_MidState midState) $ Just Black
+            Assert.equal' "First move results in: Tagged_MidGameState, ForfeitTurn_Rule2" status ForfeitTurn_Rule2    
+            Assert.equal' "Second move color is also Black" (mbNextMoveColor_FromTaggedGameState $ Tagged_MidGameState midGameState) $ Just Black
 
         test "White with no disks for his first move, is given one by Black (contrived)" do
             let 
-                startState@(StartState {color: c, nextMoves: n, core: (Core unusedDiskCounts board)}) = makeStartState
-                (BlackWhite {black: bc, white: wc}) = actual_UnusedDiskCounts_FromTaggedState_BlackWhite $ Tagged_StartState startState
+                startGameState@(StartGameState {color: c, nextMoves: n, core: (Core unusedDiskCounts board)}) = makeStartGameState
+                (BlackWhite {black: bc, white: wc}) = actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite $ Tagged_StartGameState startGameState
                 unusedDiskCounts'  = unsafePartial $ fromJust $ LZ.index (LZ.iterate (decreaseByOneFor White) unusedDiskCounts) wc 
 
-                taggedState1 = Tagged_StartState $ StartState {color: c, nextMoves: n, core: (Core unusedDiskCounts' board)}
-                history1 = unsafePartial $ fromJust $ NE.fromList $ taggedState1 : Nil
-                moves1 = nextMoves_FromTaggedState taggedState1
+                taggedGameState1 = Tagged_StartGameState $ StartGameState {color: c, nextMoves: n, core: (Core unusedDiskCounts' board)}
+                history1 = unsafePartial $ fromJust $ NE.fromList $ taggedGameState1 : Nil
+                moves1 = nextMoves_FromTaggedGameState taggedGameState1
                 move1 = unsafePartial $ fromJust $ head moves1
 
                 history2 = unsafePartial $ fromRight $ applyMoveOnHistory move1 history1 
-                taggedState2 = NE.last history2
-                midState2@(MidState {priorMove: _, status: midStatus2, nextMoves: _, core: _}) = unsafeMidStateFrom taggedState2     
-                moves2 = nextMoves_FromTaggedState taggedState2
+                taggedGameState2 = NE.last history2
+                midGameState2@(MidGameState {priorMove: _, status: midStatus2, nextMoves: _, core: _}) = unsafeMidGameStateFrom taggedGameState2     
+                moves2 = nextMoves_FromTaggedGameState taggedGameState2
                 move2 = unsafePartial $ fromJust $ head moves2
             
                 history3 = unsafePartial $ fromRight $ applyMoveOnHistory move2 history2
-                midState3@(MidState {priorMove: _, status: midStatus3, nextMoves: _, core: _}) = unsafeMidStateFrom $ NE.last history3    
+                midGameState3@(MidGameState {priorMove: _, status: midStatus3, nextMoves: _, core: _}) = unsafeMidGameStateFrom $ NE.last history3    
            
-                (BlackWhite {black: bc1, white: wc1}) = actual_UnusedDiskCounts_FromTaggedState_BlackWhite taggedState1
-                (BlackWhite {black: bc2, white: wc2}) = actual_UnusedDiskCounts_FromTaggedState_BlackWhite taggedState2
+                (BlackWhite {black: bc1, white: wc1}) = actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite taggedGameState1
+                (BlackWhite {black: bc2, white: wc2}) = actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite taggedGameState2
 
             Assert.equal' "initial unused disk counts" 
                 [bc1, wc1] [32, 0]         
@@ -564,8 +564,8 @@ main = runTest do
             let 
                 board = boardCustom4
 
-                taggedState1 = Tagged_StartState $ makeStartStateOn board
-                history1 = unsafePartial $ fromJust $ NE.fromList $ taggedState1 : Nil
+                taggedGameState1 = Tagged_StartGameState $ makeStartGameStateOn board
+                history1 = unsafePartial $ fromJust $ NE.fromList $ taggedGameState1 : Nil
                 -- Black on first move is confronted with full White board -- except for last column which is blank
                 move = Move Black (unsafePartial $ fromJust $ head $ emptySquares board) $ Outflanks Nil
 
@@ -576,13 +576,13 @@ main = runTest do
 
         test "NoAvailableDisk (contrived)" do
             let 
-                startState@(StartState {color: c, nextMoves: n, core: (Core unusedDiskCounts board)}) = makeStartState
-                (BlackWhite {black: bc, white: wc}) = actual_UnusedDiskCounts_FromTaggedState_BlackWhite $ Tagged_StartState startState
+                startGameState@(StartGameState {color: c, nextMoves: n, core: (Core unusedDiskCounts board)}) = makeStartGameState
+                (BlackWhite {black: bc, white: wc}) = actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite $ Tagged_StartGameState startGameState
                 unusedDiskCounts' = unsafePartial $ fromJust $ LZ.index (LZ.iterate (decreaseByOneFor Black) unusedDiskCounts) bc 
 
-                taggedState1 = Tagged_StartState $ StartState {color: c, nextMoves: n, core: (Core unusedDiskCounts' board)}
-                history1 = unsafePartial $ fromJust $ NE.fromList $ taggedState1 : Nil
-                moves = nextMoves_FromTaggedState taggedState1
+                taggedGameState1 = Tagged_StartGameState $ StartGameState {color: c, nextMoves: n, core: (Core unusedDiskCounts' board)}
+                history1 = unsafePartial $ fromJust $ NE.fromList $ taggedGameState1 : Nil
+                moves = nextMoves_FromTaggedGameState taggedGameState1
                 -- Black on first move is confronted with no available disks
                 move = unsafePartial $ fromJust $ head moves
 
@@ -595,8 +595,8 @@ main = runTest do
             let 
                 history1 = makeHistory
 
-                taggedState1 = NE.last history1
-                (Move color e o) = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedState taggedState1 
+                taggedGameState1 = NE.last history1
+                (Move color e o) = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState1 
                 move = Move (toggleColor color) e o
 
                 errors = unsafePartial $ fromLeft $ applyMoveOnHistory move history1    
@@ -607,13 +607,13 @@ main = runTest do
         test "WrongColor, NoAvailableDisk, NotOutflanking (contrived)" do
             let 
                 board' = boardCustom4
-                startState@(StartState {color: c, nextMoves: n, core: (Core unusedDiskCounts board)}) = makeStartState
-                (BlackWhite {black: bc, white: wc}) = actual_UnusedDiskCounts_FromTaggedState_BlackWhite $ Tagged_StartState startState
+                startGameState@(StartGameState {color: c, nextMoves: n, core: (Core unusedDiskCounts board)}) = makeStartGameState
+                (BlackWhite {black: bc, white: wc}) = actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite $ Tagged_StartGameState startGameState
                 unusedDiskCounts' = unsafePartial $ fromJust $ LZ.index (LZ.iterate (decreaseByOneFor Black) unusedDiskCounts) bc 
                 unusedDiskCounts'' = unsafePartial $ fromJust $ LZ.index (LZ.iterate (decreaseByOneFor White) unusedDiskCounts') wc 
 
-                taggedState1 = Tagged_StartState $ StartState {color: c, nextMoves: (nextMovesFrom c board'), core: (Core unusedDiskCounts'' board')}
-                history1 = unsafePartial $ fromJust $ NE.fromList $ taggedState1 : Nil
+                taggedGameState1 = Tagged_StartGameState $ StartGameState {color: c, nextMoves: (nextMovesFrom c board'), core: (Core unusedDiskCounts'' board')}
+                history1 = unsafePartial $ fromJust $ NE.fromList $ taggedGameState1 : Nil
                 move = Move White (unsafePartial $ fromJust $ head $ emptySquares board') $ Outflanks Nil
 
                 errors = unsafePartial $ fromLeft $ applyMoveOnHistory move history1     
@@ -625,104 +625,104 @@ main = runTest do
             let 
                 history1 = makeHistory
 
-                taggedState1 = NE.last history1
-                move1 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedState taggedState1 -- black C4
+                taggedGameState1 = NE.last history1
+                move1 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState1 -- black C4
                 history2 = unsafePartial $ fromRight $ applyMoveOnHistory move1 history1 
 
-                taggedState2 = NE.last history2
-                move2 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedState taggedState2 -- white C3
+                taggedGameState2 = NE.last history2
+                move2 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState2 -- white C3
                 history3 = unsafePartial $ fromRight $ applyMoveOnHistory move2 history2
 
-                taggedState3 = NE.last history3
-                move3 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedState taggedState3 -- black C2
+                taggedGameState3 = NE.last history3
+                move3 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState3 -- black C2
                 history4 = unsafePartial $ fromRight $ applyMoveOnHistory move3 history3
             
-                taggedState4 = NE.last history4
-                move4 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedState taggedState4 -- white B2
+                taggedGameState4 = NE.last history4
+                move4 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState4 -- white B2
                 history5 = unsafePartial $ fromRight $ applyMoveOnHistory move4 history4
             
-                taggedState5 = NE.last history5
-                move5 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedState taggedState5 -- black A2
+                taggedGameState5 = NE.last history5
+                move5 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState5 -- black A2
                 history6 = unsafePartial $ fromRight $ applyMoveOnHistory move5 history5
             
-                taggedState6 = NE.last history6
-                move6 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedState taggedState6 -- white A1
+                taggedGameState6 = NE.last history6
+                move6 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState6 -- white A1
                 history7 = unsafePartial $ fromRight $ applyMoveOnHistory move6 history6
             
-                taggedState7 = NE.last history7
-                move7 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedState taggedState7 -- black D3
+                taggedGameState7 = NE.last history7
+                move7 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState7 -- black D3
                 history8 = unsafePartial $ fromRight $ applyMoveOnHistory move7 history7
             
-                taggedState8 = NE.last history8
-                move8 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedState taggedState8 -- white A3
+                taggedGameState8 = NE.last history8
+                move8 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState8 -- white A3
                 history9 = unsafePartial $ fromRight $ applyMoveOnHistory move8 history8
             
-                taggedState9 = NE.last history9
-                move9 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedState taggedState9 -- black B3
+                taggedGameState9 = NE.last history9
+                move9 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState9 -- black B3
                 history10 = unsafePartial $ fromRight $ applyMoveOnHistory move9 history9
             
-                taggedState10 = NE.last history10
-                move10 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedState taggedState10 -- white D2
+                taggedGameState10 = NE.last history10
+                move10 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState10 -- white D2
                 history11 = unsafePartial $ fromRight $ applyMoveOnHistory move10 history10
             
-                taggedState11 = NE.last history11
-                move11 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedState taggedState11 -- black B1
+                taggedGameState11 = NE.last history11
+                move11 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState11 -- black B1
                 history12 = unsafePartial $ fromRight $ applyMoveOnHistory move11 history11
             
-                taggedState12 = NE.last history12
-                move12 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedState taggedState12 -- white C1
+                taggedGameState12 = NE.last history12
+                move12 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState12 -- white C1
                 history13 = unsafePartial $ fromRight $ applyMoveOnHistory move12 history12
             
-                taggedState13 = NE.last history13
-                move13 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedState taggedState13 -- black D1
+                taggedGameState13 = NE.last history13
+                move13 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState13 -- black D1
                 history14 = unsafePartial $ fromRight $ applyMoveOnHistory move13 history13
             
-                taggedState14 = NE.last history14
-                move14 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedState taggedState14 -- white E1
+                taggedGameState14 = NE.last history14
+                move14 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState14 -- white E1
                 history15 = unsafePartial $ fromRight $ applyMoveOnHistory move14 history14
             
-                taggedState15 = NE.last history15
-                move15 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedState taggedState15 -- black E6
+                taggedGameState15 = NE.last history15
+                move15 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState15 -- black E6
                 history16 = unsafePartial $ fromRight $ applyMoveOnHistory move15 history15
             
-                taggedState16 = NE.last history16
-                move16 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedState taggedState16 -- white E2
+                taggedGameState16 = NE.last history16
+                move16 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState16 -- white E2
                 history17 = unsafePartial $ fromRight $ applyMoveOnHistory move16 history16
             
-                taggedState17 = NE.last history17
-                move17 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedState taggedState17 -- black F1
+                taggedGameState17 = NE.last history17
+                move17 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState17 -- black F1
                 history18 = unsafePartial $ fromRight $ applyMoveOnHistory move17 history17
             
-                taggedState18 = NE.last history18
-                move18 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedState taggedState18 -- white F2
+                taggedGameState18 = NE.last history18
+                move18 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState18 -- white F2
                 history19 = unsafePartial $ fromRight $ applyMoveOnHistory move18 history18
             
-                taggedState19 = NE.last history19
-                move19 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedState taggedState19 -- black F3
+                taggedGameState19 = NE.last history19
+                move19 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState19 -- black F3
                 history20 = unsafePartial $ fromRight $ applyMoveOnHistory move19 history19
             
-                taggedState20 = NE.last history20
-                move20 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedState taggedState20 -- white G1
+                taggedGameState20 = NE.last history20
+                move20 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState20 -- white G1
                 history21 = unsafePartial $ fromRight $ applyMoveOnHistory move20 history20
             
-                taggedState21 = NE.last history21 -- forfeit
-                move21 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedState taggedState21 -- white E3
+                taggedGameState21 = NE.last history21 -- forfeit
+                move21 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState21 -- white E3
                 history22 = unsafePartial $ fromRight $ applyMoveOnHistory move21 history21
             
-                taggedState22 = NE.last history22 -- forfeit
-                move22 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedState taggedState22 -- white F4
+                taggedGameState22 = NE.last history22 -- forfeit
+                move22 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState22 -- white F4
                 history23 = unsafePartial $ fromRight $ applyMoveOnHistory move22 history22
             
-                taggedState23 = NE.last history23
-                move23 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedState taggedState23 -- white G2
+                taggedGameState23 = NE.last history23
+                move23 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState23 -- white G2
                 history24 = unsafePartial $ fromRight $ applyMoveOnHistory move23 history23
             
-                taggedState24 = NE.last history24
-                move24 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedState taggedState24 -- white G3
+                taggedGameState24 = NE.last history24
+                move24 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState24 -- white G3
                 history25 = unsafePartial $ fromRight $ applyMoveOnHistory move24 history24
             
-                taggedState25 = NE.last history25
-                move25 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedState taggedState25 -- black H1
+                taggedGameState25 = NE.last history25
+                move25 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState25 -- black H1
                 history26 = unsafePartial $ fromRight $ applyMoveOnHistory move25 history25         
             
             Assert.equal' "undo history1" (undoHistoryOnce history1) Nothing   
@@ -738,7 +738,7 @@ main = runTest do
             Assert.equal' "undo history24" (unsafePartial $ fromJust $ undoHistoryOnce history24) history22
             Assert.equal' "undo history25" (unsafePartial $ fromJust $ undoHistoryOnce history25) history23    
 
-            Assert.equal' "forfeits" (NE.filter isForfeitTurn history26) $ fromFoldable [taggedState21, taggedState22]                                                       
+            Assert.equal' "forfeits" (NE.filter isForfeitTurn history26) $ fromFoldable [taggedGameState21, taggedGameState22]                                                       
 
     -- suite "Commented Out" do
     --     test "flipAt" do

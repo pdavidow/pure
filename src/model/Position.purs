@@ -30,6 +30,7 @@ data Dir = Inc | Dec
 
 
 derive instance eqPosition :: Eq Position
+derive instance ordPosition :: Ord Position
 derive instance eqPositionRow :: Eq PositionRow
 
 instance showPosition :: Show Position where

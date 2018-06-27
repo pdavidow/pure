@@ -1,0 +1,17 @@
+/* https://css-tricks.com/difference-explicit-implicit-grids/ */
+
+.grid-container {
+    display: inline-grid;
+    grid-template-columns: auto auto auto auto auto auto auto auto;
+    /* align-content: space-evenly; */
+    /* place-items: start start; */
+    align-items: left;
+    justify-items: left;
+    /* grid-gap: 10px; */
+    padding: 10px;
+  }
+  .grid-item {
+    /* border: 1px solid rgba(0, 0, 0, 0.8);
+    padding: 20px; */
+    align-self: center
+  }
