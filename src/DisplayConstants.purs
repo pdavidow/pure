@@ -10,6 +10,15 @@ import Prelude
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 
+basicGridItem :: String
+basicGridItem =
+    " grid-item h3 w3 "
+
+
+fillableGridItem :: String
+fillableGridItem =
+    basicGridItem <> " flex justify-center "
+
 
 defaultSquareColor :: String
 defaultSquareColor = 
@@ -21,23 +30,23 @@ moveSquareColor =
     " bg-light-green " 
 
 
-moveSquareColor_InFocusMoveSquare :: String
-moveSquareColor_InFocusMoveSquare =
+moveSquareColor_FocusedMoveSquare :: String
+moveSquareColor_FocusedMoveSquare =
     " bg-green " 
 
 
-moveSquareColor_InFocusFilledOpponentSquare :: String
-moveSquareColor_InFocusFilledOpponentSquare = 
+moveSquareColor_FocusedFilledOpponentSquare :: String
+moveSquareColor_FocusedFilledOpponentSquare = 
     " bg-green " 
 
 
-outflankSquareColor_InFocusMoveSquare :: String
-outflankSquareColor_InFocusMoveSquare = 
+outflankSquareColor_FocusedMoveSquare :: String
+outflankSquareColor_FocusedMoveSquare = 
     " bg-washed-green "
 
 
-outflankSquareColor_InFocusFilledOpponentSquare :: String
-outflankSquareColor_InFocusFilledOpponentSquare = 
+outflankSquareColor_FocusedFilledOpponentSquare :: String
+outflankSquareColor_FocusedFilledOpponentSquare = 
     " bg-washed-yellow "
 
 
@@ -46,29 +55,34 @@ squareBorder_Default =
     " outline " 
 
 
-moveSquareBorder_InFocusMoveSquare :: String
-moveSquareBorder_InFocusMoveSquare = 
+moveSquareBorder_FocusedMoveSquare :: String
+moveSquareBorder_FocusedMoveSquare = 
     " outline " 
 
 
-moveSquareBorder_InFocusFilledOpponentSquare :: String
-moveSquareBorder_InFocusFilledOpponentSquare = 
+moveSquareBorder_FocusedFilledOpponentSquare :: String
+moveSquareBorder_FocusedFilledOpponentSquare = 
     " outline " 
 
 
-outflankSquareBorder_InFocusMoveSquare :: String
-outflankSquareBorder_InFocusMoveSquare = 
+outflankSquareBorder_FocusedMoveSquare :: String
+outflankSquareBorder_FocusedMoveSquare = 
     " outline "  -- " ba bw1 b--dotted " 
 
 
-outflankSquareBorder_InFocusFilledOpponentSquare :: String
-outflankSquareBorder_InFocusFilledOpponentSquare = 
+outflankSquareBorder_FocusedFilledOpponentSquare :: String
+outflankSquareBorder_FocusedFilledOpponentSquare = 
     " outline "  -- " ba bw1 b--dotted " 
 
 
 potentialDisk :: String
 potentialDisk =
-    " br-100 h2 w2 self-center ba " 
+    " br-100 h2 w2 self-center ba bw1 b--orange " 
+
+
+flipDisk :: String
+flipDisk =
+    " br-100 h2 w2 self-center ba bw1 b--orange b--dashed " 
 
 
 placedDisk :: String
@@ -84,6 +98,16 @@ potentialDisk_Black =
 potentialDisk_White :: String
 potentialDisk_White = 
     potentialDisk <> " bg-white "          
+
+
+flipDisk_Black :: String
+flipDisk_Black = 
+    flipDisk <> " bg-black "
+        
+
+flipDisk_White :: String
+flipDisk_White = 
+    flipDisk <> " bg-white "  
 
 
 placedDisk_Black :: String
