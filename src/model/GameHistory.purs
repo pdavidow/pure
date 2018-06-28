@@ -36,10 +36,9 @@ makeHistory =
 
 
 validateMoveOnHistory :: Move -> GameHistory -> List MoveValidationError 
-validateMoveOnHistory move history = 
+validateMoveOnHistory (Move rec) history = 
     let
         lastGameState = NE.last history
-        (Move color emptySquare _) = move
 
         isGameOver = 
             case lastGameState of
@@ -48,13 +47,13 @@ validateMoveOnHistory move history =
                 Tagged_EndGameState   _ -> true
 
         isWrongColor = 
-            color /= fromMaybe Black (mbNextMoveColor_FromTaggedGameState lastGameState) -- should never use default
+            rec.color /= fromMaybe Black (mbNextMoveColor_FromTaggedGameState lastGameState) -- should never use default
 
         isNoAvailableDisk = 
-            isZeroUnusedDiskCount color $ core_FromTaggedGameState lastGameState
+            isZeroUnusedDiskCount rec.color $ core_FromTaggedGameState lastGameState
 
         isNotOutflanking =
-            not $ elem emptySquare $ map (\(Move _ emptySquare' _) -> emptySquare') $ nextMoves_FromTaggedGameState lastGameState
+            not $ elem rec.emptySquare $ map (\(Move rec') -> rec'.emptySquare) $ nextMoves_FromTaggedGameState lastGameState
     in
         fromFoldable $
             (if isGameOver        then [GameOver]        else []) <>

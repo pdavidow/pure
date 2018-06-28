@@ -3,7 +3,7 @@ module Test.Main where
 import Prelude
 
 import BlackWhite (BlackWhite(..), makeBlackWhite)
-import Board (Board, EmptySquare(..), FilledRow(FilledRow), Outflanks(..), Move(..), Tagged_Square(Tagged_FilledSquare), boardAt, boardSquaresColored, boardFromConfig, initialBoard, isFilledSquare, toPosition, validMoves, applyBoardMove, movePositionChoices, moveColor, emptySquares, diskFrom, filledSquares) --, flipAt)   
+import Board (Board, EmptySquare(..), FilledRow(FilledRow), Move(..), Tagged_Square(Tagged_FilledSquare), applyBoardMove, boardAt, boardFromConfig, boardSquaresColored, diskFrom, emptySquares, filledSquares, initialBoard, isFilledSquare, moveColor, movePosition, movePositionChoices, outflankPositions, toPosition, validMoves)
 import BoardSize (boardSize)
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.AVar (AVAR)
@@ -17,8 +17,8 @@ import Data.Maybe (Maybe(..), fromJust)
 import Data.Record (equal)
 import Data.Tuple (Tuple(..))
 import Disk (Color(..), flipCount, toggleColor)
-import GameState (Tagged_GameState(..), Core(..), StartGameState(..), MidGameState(..), EndGameState(..), MidStatus(..), EndStatus(..), actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite, board_FromTaggedGameState, nextMoves_FromTaggedGameState, mbNextMoveColor_FromTaggedGameState, nextMovesFrom, makeStartGameState, makeStartGameStateOn, isForfeitTurn) 
 import GameHistory (MoveValidationError(..), applyMoveOnHistory, makeHistory, undoHistoryOnce)
+import GameState (Tagged_GameState(..), Core(..), StartGameState(..), MidGameState(..), EndGameState(..), MidStatus(..), EndStatus(..), actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite, board_FromTaggedGameState, nextMoves_FromTaggedGameState, mbNextMoveColor_FromTaggedGameState, nextMovesFrom, makeStartGameState, makeStartGameStateOn, isForfeitTurn)
 import Lib (haskellRange, mapTakeWhile)
 import Partial.Unsafe (unsafePartial)
 import Position (Position, PositionRec, PositionRow(..), makeValidPosition, positionRec, radiatingPositionRows)
@@ -324,74 +324,74 @@ main = runTest do
             let 
                 moves = validMoves Black initialBoard
 
-                (Move _ (EmptySquare pos0 _) (Outflanks o0)) = unsafePartial $ fromJust $ index moves 0
-                (Move _ (EmptySquare pos1 _) (Outflanks o1)) = unsafePartial $ fromJust $ index moves 1
-                (Move _ (EmptySquare pos2 _) (Outflanks o2)) = unsafePartial $ fromJust $ index moves 2
-                (Move _ (EmptySquare pos3 _) (Outflanks o3)) = unsafePartial $ fromJust $ index moves 3
+                m0@(Move rec0) = unsafePartial $ fromJust $ index moves 0
+                m1@(Move rec1) = unsafePartial $ fromJust $ index moves 1
+                m2@(Move rec2) = unsafePartial $ fromJust $ index moves 2
+                m3@(Move rec3) = unsafePartial $ fromJust $ index moves 3
 
-                outflanks0 = map filledRowToPosRow o0
-                outflanks1 = map filledRowToPosRow o1
-                outflanks2 = map filledRowToPosRow o2
-                outflanks3 = map filledRowToPosRow o3
+                outflanks0 = map filledRowToPosRow rec0.outflanks
+                outflanks1 = map filledRowToPosRow rec1.outflanks
+                outflanks2 = map filledRowToPosRow rec2.outflanks
+                outflanks3 = map filledRowToPosRow rec3.outflanks
                 
             Assert.equal' "4 moves" (length moves) 4
 
-            Assert.assert "move 0" $ equal (positionRec pos0) {x:4, y:3}
+            Assert.assert "move 0" $ equal (positionRec $ movePosition m0) {x:4, y:3}
             Assert.equal' "outflanks 0" outflanks0 $ fromFoldable [PositionRow $ fromFoldable [makeValidPosition {x:4, y:4}]]
 
-            Assert.assert "move 1" $ equal (positionRec pos1) {x:3, y:4}
+            Assert.assert "move 1" $ equal (positionRec $ movePosition m1) {x:3, y:4}
             Assert.equal' "outflanks 1" outflanks1 $ fromFoldable [PositionRow $ fromFoldable [makeValidPosition {x:4, y:4}]]
 
-            Assert.assert "move 2" $ equal (positionRec pos2) {x:6, y:5}
+            Assert.assert "move 2" $ equal (positionRec $ movePosition m2) {x:6, y:5}
             Assert.equal' "outflanks 2" outflanks2 $ fromFoldable [PositionRow $ fromFoldable [makeValidPosition {x:5, y:5}]]
 
-            Assert.assert "move 3" $ equal (positionRec pos3) {x:5, y:6}
+            Assert.assert "move 3" $ equal (positionRec $ movePosition m3) {x:5, y:6}
             Assert.equal' "outflanks 3" outflanks3 $ fromFoldable [PositionRow $ fromFoldable [makeValidPosition {x:5, y:5}]]        
 
         test "validMoves Black boardCustom1" do      
             let 
                 moves = validMoves Black boardCustom1
 
-                (Move _ (EmptySquare pos0 _) (Outflanks o0)) = unsafePartial $ fromJust $ index moves 0
-                (Move _ (EmptySquare pos1 _) (Outflanks o1)) = unsafePartial $ fromJust $ index moves 1
-                (Move _ (EmptySquare pos2 _) (Outflanks o2)) = unsafePartial $ fromJust $ index moves 2
-                (Move _ (EmptySquare pos3 _) (Outflanks o3)) = unsafePartial $ fromJust $ index moves 3
+                m0@(Move rec0) = unsafePartial $ fromJust $ index moves 0
+                m1@(Move rec1) = unsafePartial $ fromJust $ index moves 1
+                m2@(Move rec2) = unsafePartial $ fromJust $ index moves 2
+                m3@(Move rec3) = unsafePartial $ fromJust $ index moves 3
 
-                outflanks0 = map filledRowToPosRow o0
-                outflanks1 = map filledRowToPosRow o1
-                outflanks2 = map filledRowToPosRow o2
-                outflanks3 = map filledRowToPosRow o3
+                outflanks0 = map filledRowToPosRow rec0.outflanks
+                outflanks1 = map filledRowToPosRow rec1.outflanks
+                outflanks2 = map filledRowToPosRow rec2.outflanks
+                outflanks3 = map filledRowToPosRow rec3.outflanks
                 
             Assert.equal' "4 moves" (length moves) 4
 
-            Assert.assert "move 0" $ equal (positionRec pos0) {x:2, y:3}
+            Assert.assert "move 0" $ equal (positionRec $ movePosition m0) {x:2, y:3}
             Assert.equal' "outflanks 0" outflanks0 $ fromFoldable [PositionRow $ fromFoldable [makeValidPosition {x:3, y:3}]]
 
-            Assert.assert "move 1" $ equal (positionRec pos1) {x:2, y:8}
+            Assert.assert "move 1" $ equal (positionRec $ movePosition m1) {x:2, y:8}
             Assert.equal' "outflanks 1" outflanks1 $ fromFoldable [PositionRow $ fromFoldable [makeValidPosition {x:3, y:7}]]
 
-            Assert.assert "move 2" $ equal (positionRec pos2) {x:7, y:6}
+            Assert.assert "move 2" $ equal (positionRec $ movePosition m2) {x:7, y:6}
             Assert.equal' "outflanks 2" outflanks2 $ fromFoldable [PositionRow $ fromFoldable [makeValidPosition {x:7, y:5}]]
 
-            Assert.assert "move 3" $ equal (positionRec pos3) {x:8, y:6}
+            Assert.assert "move 3" $ equal (positionRec $ movePosition m3) {x:8, y:6}
             Assert.equal' "outflanks 3" outflanks3 $ fromFoldable [PositionRow $ fromFoldable [makeValidPosition {x:7, y:5}]]   
 
         test "validMoves White boardCustom1" do      
             let 
                 moves = validMoves White boardCustom1
 
-                (Move _ (EmptySquare pos0 _) (Outflanks o0)) = unsafePartial $ fromJust $ index moves 0
-                (Move _ (EmptySquare pos1 _) (Outflanks o1)) = unsafePartial $ fromJust $ index moves 1
+                m0@(Move rec0) = unsafePartial $ fromJust $ index moves 0
+                m1@(Move rec1) = unsafePartial $ fromJust $ index moves 1
 
-                outflanks0 = map filledRowToPosRow o0
-                outflanks1 = map filledRowToPosRow o1
+                outflanks0 = map filledRowToPosRow rec0.outflanks
+                outflanks1 = map filledRowToPosRow rec1.outflanks
                 
             Assert.equal' "2 moves" (length moves) 2
 
-            Assert.assert "move 0" $ equal (positionRec pos0) {x:4, y:2}
+            Assert.assert "move 0" $ equal (positionRec $ movePosition m0) {x:4, y:2}
             Assert.equal' "outflanks 0" outflanks0 $ fromFoldable [PositionRow $ fromFoldable [makeValidPosition {x:5, y:3}, makeValidPosition {x:6, y:4}]]
 
-            Assert.assert "move 1" $ equal (positionRec pos1) {x:7, y:3}
+            Assert.assert "move 1" $ equal (positionRec $ movePosition m1) {x:7, y:3}
             Assert.equal' "outflanks 1" outflanks1 $ fromFoldable 
                 [ PositionRow $ fromFoldable [makeValidPosition {x:6, y:3}, makeValidPosition {x:5, y:3}, makeValidPosition {x:4, y:3}]
                 , PositionRow $ fromFoldable [makeValidPosition {x:7, y:4}]
@@ -567,7 +567,11 @@ main = runTest do
                 taggedGameState1 = Tagged_StartGameState $ makeStartGameStateOn board
                 history1 = unsafePartial $ fromJust $ NE.fromList $ taggedGameState1 : Nil
                 -- Black on first move is confronted with full White board -- except for last column which is blank
-                move = Move Black (unsafePartial $ fromJust $ head $ emptySquares board) $ Outflanks Nil
+                move = Move 
+                    { color: Black
+                    , emptySquare: unsafePartial $ fromJust $ head $ emptySquares board
+                    , outflanks: Nil
+                    }
 
                 errors = unsafePartial $ fromLeft $ applyMoveOnHistory move history1    
 
@@ -596,8 +600,12 @@ main = runTest do
                 history1 = makeHistory
 
                 taggedGameState1 = NE.last history1
-                (Move color e o) = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState1 
-                move = Move (toggleColor color) e o
+                (Move rec) = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState1 
+                move = Move 
+                    { color: toggleColor rec.color
+                    , emptySquare: rec.emptySquare
+                    , outflanks: rec.outflanks
+                    }
 
                 errors = unsafePartial $ fromLeft $ applyMoveOnHistory move history1    
 
@@ -614,7 +622,11 @@ main = runTest do
 
                 taggedGameState1 = Tagged_StartGameState $ StartGameState {color: c, nextMoves: (nextMovesFrom c board'), core: (Core unusedDiskCounts'' board')}
                 history1 = unsafePartial $ fromJust $ NE.fromList $ taggedGameState1 : Nil
-                move = Move White (unsafePartial $ fromJust $ head $ emptySquares board') $ Outflanks Nil
+                move = Move
+                    { color: White
+                    , emptySquare: unsafePartial $ fromJust $ head $ emptySquares board'
+                    , outflanks: Nil
+                    }                
 
                 errors = unsafePartial $ fromLeft $ applyMoveOnHistory move history1     
 
