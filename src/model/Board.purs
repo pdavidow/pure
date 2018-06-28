@@ -31,6 +31,7 @@ module Board
     , emptySquares
     , diskFrom
     , outflankPositions
+    , outflankPositions_Traversing
     --, flipAt -- Should NOT be exposed (but ok to temp expose for sake of commented-out test)
     )
     where
@@ -39,7 +40,7 @@ import Prelude
 
 import BoardSize (boardSize)
 import Data.Array as Array
-import Data.List (List(..), nub, null, any, concatMap, filter, foldl, fromFoldable, head, tail, takeWhile, length, mapMaybe, range, zipWith)
+import Data.List (List(..), elem, nub, null, any, concatMap, filter, foldl, fromFoldable, head, tail, takeWhile, length, mapMaybe, range, zipWith)
 import Data.Maybe (Maybe(..), fromJust)
 import Data.Tuple (Tuple(..))
 import Disk (Disk, Color(..), diskColor, flipDisk, makeDisk, toggleColor)
@@ -192,10 +193,29 @@ outflankPositions move =
         # map (toPosition <<< Tagged_FilledSquare)
 
 
+outflankPositions_Traversing :: Position -> Move -> List Position  
+outflankPositions_Traversing position move =
+    outflankSquares_Traversing position move
+        # map (toPosition <<< Tagged_FilledSquare)
+
+
 outflankSquares :: Move -> List FilledSquare
 outflankSquares (Move _ _ (Outflanks xs)) =
+    filledRowsToSquares xs
+
+
+outflankSquares_Traversing :: Position -> Move -> List FilledSquare
+outflankSquares_Traversing position (Move _ _ (Outflanks xs)) =
+    xs
+        # filter (\ (FilledRow filledSquares) -> elem position $ map (toPosition <<< Tagged_FilledSquare) filledSquares)
+        # filledRowsToSquares
+
+
+filledRowsToSquares :: List FilledRow -> List FilledSquare
+filledRowsToSquares xs =
     xs
         # (\ filledRows -> concatMap (\ (FilledRow ys) -> ys) filledRows)    
+        # nub
 
 
 toPosition :: Tagged_Square -> Position

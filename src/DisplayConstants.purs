@@ -68,7 +68,7 @@ outflankSquareBorder_InFocusFilledOpponentSquare =
 
 potentialDisk :: String
 potentialDisk =
-    " br-100 h-75 w-75 self-center ba " 
+    " br-100 h2 w2 self-center ba " 
 
 
 placedDisk :: String
