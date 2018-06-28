@@ -3,25 +3,25 @@ module Test.Main where
 import Prelude
 
 import BlackWhite (BlackWhite(..), makeBlackWhite)
-import Board (Board, EmptySquare(..), FilledRow(FilledRow), Move(..), Tagged_Square(Tagged_FilledSquare), applyBoardMove, boardAt, boardFromConfig, boardSquaresColored, diskFrom, emptySquares, filledSquares, initialBoard, isFilledSquare, moveColor, movePosition, movePositionChoices, outflankPositions, toPosition, validMoves)
+import Board (Board, FilledRow(FilledRow), Move(..), Tagged_Square(Tagged_FilledSquare), applyBoardMove, boardAt, boardFromConfig, boardSquaresColored, emptySquares, initialBoard, isFilledSquare, moveColor, movePosition, movePositionChoices, toPosition, validMoves)
 import BoardSize (boardSize)
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.AVar (AVAR)
 import Control.Monad.Eff.Console (CONSOLE)
 import Data.Array (tail)
 import Data.Either (fromLeft, fromRight)
-import Data.List (List(Nil), fromFoldable, (:), foldl, head, index, length, toUnfoldable, zip)
+import Data.List (List(Nil), fromFoldable, (:), head, index, length, toUnfoldable)
 import Data.List.Lazy as LZ
 import Data.List.NonEmpty as NE
 import Data.Maybe (Maybe(..), fromJust)
 import Data.Record (equal)
 import Data.Tuple (Tuple(..))
-import Disk (Color(..), flipCount, toggleColor)
+import Disk (Color(..), toggleColor)
 import GameHistory (MoveValidationError(..), applyMoveOnHistory, makeHistory, undoHistoryOnce)
 import GameState (Tagged_GameState(..), Core(..), StartGameState(..), MidGameState(..), EndGameState(..), MidStatus(..), EndStatus(..), actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite, board_FromTaggedGameState, nextMoves_FromTaggedGameState, mbNextMoveColor_FromTaggedGameState, nextMovesFrom, makeStartGameState, makeStartGameStateOn, isForfeitTurn)
 import Lib (haskellRange, mapTakeWhile)
 import Partial.Unsafe (unsafePartial)
-import Position (Position, PositionRec, PositionRow(..), makeValidPosition, positionRec, radiatingPositionRows)
+import Position (Position, PositionRow(..), makeValidPosition, positionRec, radiatingPositionRows)
 import Test.Unit (suite, test)
 import Test.Unit.Assert as Assert
 import Test.Unit.Console (TESTOUTPUT)
