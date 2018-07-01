@@ -16,3 +16,11 @@ npx http-server
 
 
 (doesn't work: pulp server)
+
+=================
+
+https://github.com/purescript/psc-package
+
+psc-package install <package>
+
+psc-package --help

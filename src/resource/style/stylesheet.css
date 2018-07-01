@@ -1,17 +1,26 @@
 /* https://css-tricks.com/difference-explicit-implicit-grids/ */
 
-.grid-container {
-    display: inline-grid;
-    grid-template-columns: auto auto auto auto auto auto auto auto;
+.board-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 80px);
+    grid-auto-rows: 80px;
     /* align-content: space-evenly; */
     /* place-items: start start; */
-    align-items: left;
-    justify-items: left;
+    /* align-items: left; */
+    /* justify-items: left; */
     /* grid-gap: 10px; */
-    padding: 10px;
+    /* padding: 10px; */
   }
-  .grid-item {
+  .board-grid-item {
     /* border: 1px solid rgba(0, 0, 0, 0.8);
     padding: 20px; */
+    align-self: center
+  }
+
+  .unusedDisk-grid {
+    display: grid;
+    grid-template-columns: repeat(32, 12px);
+  }
+  .unusedDisk-grid-item {
     align-self: center
   }

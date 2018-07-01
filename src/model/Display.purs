@@ -116,6 +116,8 @@ movesAndOutflanksForFilled position allMoves =
             # concatMap (\ move -> B.outflankPositions_Traversing position move)
             # nub
     in
-        {movePositions: movePositions, outflankPositions: outflankPositions}        
+        { movePositions: movePositions
+        , outflankPositions: outflankPositions
+        }        
 
  

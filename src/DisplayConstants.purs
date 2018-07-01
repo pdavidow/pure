@@ -12,7 +12,7 @@ import Prelude
 
 basicGridItem :: String
 basicGridItem =
-    " grid-item h3 w3 "
+    " board-grid-item h3 w3 "
 
 
 fillableGridItem :: String
@@ -75,19 +75,24 @@ outflankSquareBorder_FocusedFilledOpponentSquare =
     " outline "  -- " ba bw1 b--dotted " 
 
 
+basicDisk :: String
+basicDisk =
+    " br-100 h2 w2 self-center ba " 
+
+
 potentialDisk :: String
 potentialDisk =
-    " br-100 h2 w2 self-center ba bw1 b--orange " 
+    basicDisk <> " bw1 b--orange " 
 
 
 flipDisk :: String
 flipDisk =
-    " br-100 h2 w2 self-center ba bw1 b--orange b--dashed " 
+    basicDisk <> " bw1 b--orange b--dashed " 
 
 
 placedDisk :: String
 placedDisk =
-    " br-100 h2 w2 self-center ba " 
+    basicDisk
 
 
 potentialDisk_Black :: String

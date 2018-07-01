@@ -82,6 +82,7 @@ component =
         -- https://css-tricks.com/snippets/css/complete-guide-grid/
         -- https://github.com/tachyons-css/tachyons/issues/372
         -- https://tachyons-css.slack.com/archives/C2W7UNRMJ/p1529697068000052
+        -- https://gridbyexample.com/
         HH.div
             [ HE.onMouseUp $ HE.input_ $ MouseUp_Anywhere ]
             [ HH.button
@@ -92,8 +93,11 @@ component =
                 ]
                 [ HH.text "UNDO" ]
             , HH.div
-                [ HP.classes [ HH.ClassName "grid-container" ] ] 
+                [ HP.classes [ HH.ClassName "board-grid" ] ] 
                 ( map renderSquare squares )
+            -- , HH.div
+            --     [ HP.classes [ HH.ClassName "unusedDisk-grid" ] ] 
+            --     ( map renderUnusedDisk unusedDisks )                
             ]
         where 
 
@@ -262,6 +266,10 @@ component =
                     White -> DC.placedDisk_White
 
 
+        -- renderUnusedDisk :: ? -> H.ComponentHTML Query
+        -- renderUnusedDisk ? =
+
+
     eval :: Query ~> H.ComponentDSL State Query Void (Aff (Effects eff))
     eval = case _ of    
         MouseEnter_MoveSquare x@(Move_DisplaySquare rec) next -> do
@@ -297,7 +305,7 @@ component =
             pure next
 
         MouseUp_MoveSquare x@(Move_DisplaySquare rec) next -> do
-            mouseDown_MoveSquare <- H.gets _.mouseDown_MoveSquare 
+            mouseDown_MoveSquare <- H.gets _.mouseDown_MoveSquare -- https://purescript-users.ml/t/halogen-double-mouseup-event/257
 
             when (mouseDown_MoveSquare == Just x) do
                 history <- H.gets _.gameHistory

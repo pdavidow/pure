@@ -9,6 +9,7 @@ module Board
     , toPosition
     , validMoves
     , boardAt
+    , boardArrayAt
     , isFilledSquare
     , boardFromConfig
     , applyBoardMove
@@ -177,12 +178,16 @@ updateBoardAt pos val (Board array2D) =
 
 
 boardAt :: Board -> Position -> Tagged_Square
-boardAt (Board array2D) pos =   
+boardAt (Board array2D) pos =  
+    boardArrayAt array2D $ positionRec pos  
+
+
+boardArrayAt :: forall a. Array (Array a) -> PositionRec -> a
+boardArrayAt array2D ({x: i, y: j}) =   
     let
-        ({x: i, y: j}) = positionRec pos
         row = unsafePartial $ fromJust $ Array.index array2D $ i - 1
     in
-        unsafePartial $ fromJust $ Array.index row $ j - 1   
+        unsafePartial $ fromJust $ Array.index row $ j - 1 
 
 
 boardElems :: Board -> Array Tagged_Square
