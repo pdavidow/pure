@@ -212,11 +212,6 @@ component =
                 Just moveSquare == state.focused_MoveSquare 
 
 
-            isMove_MouseDownMoveSquare :: Move_DisplaySquare -> Boolean
-            isMove_MouseDownMoveSquare moveSquare =
-                Just moveSquare == state.mouseDown_MoveSquare
-
-
             isMove_FocusedFilledOpponentSquare :: Move_DisplaySquare -> Boolean
             isMove_FocusedFilledOpponentSquare (Move_DisplaySquare rec) =
                 elem (movePosition rec.move) state.moves_FocusedFilledOpponentSquare
@@ -244,8 +239,7 @@ component =
                         ""
 
                     Tagged_Move_DisplaySquare x ->           
-                        -- if isMove_FocusedMoveSquare x || isMove_FocusedFilledOpponentSquare x then
-                        if isMove_FocusedMoveSquare x && isMove_MouseDownMoveSquare x then
+                        if isMove_FocusedMoveSquare x && isJust state.mouseDown_MoveSquare then
                             DC.potentialDiskClassesForColor moveColor
                         else
                             ""                            
