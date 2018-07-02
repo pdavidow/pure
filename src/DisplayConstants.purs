@@ -27,27 +27,27 @@ defaultSquareColor =
 
 moveSquareColor :: String
 moveSquareColor = 
-    " bg-light-green " 
+    " bg-green " 
 
 
 moveSquareColor_FocusedMoveSquare :: String
 moveSquareColor_FocusedMoveSquare =
-    " bg-green " 
+    " bg-dark-green " 
 
 
 moveSquareColor_FocusedFilledOpponentSquare :: String
 moveSquareColor_FocusedFilledOpponentSquare = 
-    " bg-green " 
+    " bg-dark-green " 
 
 
 outflankSquareColor_FocusedMoveSquare :: String
 outflankSquareColor_FocusedMoveSquare = 
-    " bg-washed-green "
+    " bg-light-green "
 
 
 outflankSquareColor_FocusedFilledOpponentSquare :: String
 outflankSquareColor_FocusedFilledOpponentSquare = 
-    " bg-washed-yellow "
+    " bg-light-yellow "
 
 
 squareBorder_Default :: String

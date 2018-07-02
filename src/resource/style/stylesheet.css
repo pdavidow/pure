@@ -1,8 +1,9 @@
 /* https://css-tricks.com/difference-explicit-implicit-grids/ */
 
+
 .board-grid {
     display: grid;
-    grid-template-columns: repeat(8, 80px); /* todo: how can I pass in the 8 ? SASS/LESS*/
+    grid-template-columns: repeat(var(--boardSize), 80px);
     grid-auto-rows: 80px;
     /* align-content: space-evenly; */
     /* place-items: start start; */
@@ -19,7 +20,7 @@
 
   .unusedDisk-grid {
     display: grid;
-    grid-template-columns: repeat(32, 20px); /* todo: how can I pass in the 32 ? SASS/LESS*/
+    grid-template-columns: repeat(var(--maxUnusedDiskCount), 20px); 
   }
   .unusedDisk-grid-item {
     align-self: center

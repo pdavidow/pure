@@ -15,6 +15,9 @@ import Data.Int (even)
 
 data Disk = Disk {initColor :: Color, flipCount :: Int}
 
+-- todo use instead
+-- https://pursuit.purescript.org/packages/purescript-colors/4.3.0/docs/Color#v:black
+-- https://pursuit.purescript.org/packages/purescript-colors/4.3.0/docs/Color#v:white
 data Color = Black | White
 
 

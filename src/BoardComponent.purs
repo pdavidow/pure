@@ -6,7 +6,9 @@ module BoardComponent
 
 import Prelude
 
+import BlackWhite (BlackWhite(..))
 import Board (boardElems, movePosition)
+import BoardSize (boardSize)
 import Control.Monad.Aff (Aff)
 import DOM (DOM)
 import DOM.Classy.Event (preventDefault, toEvent)
@@ -24,10 +26,10 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Lib (haskellRange)
+import Lib (cssStyle, haskellRange)
 import Partial.Unsafe (unsafePartial)
 import Position (Position)
-import BlackWhite (BlackWhite(..))
+import UnusedDiskCount (maxDiskCount)
 
 
 data Query a
@@ -51,6 +53,7 @@ type State =
     }
 
 type Effects eff = ( dom :: DOM | eff )
+
 
 component :: forall eff. H.Component HH.HTML Query Unit Void (Aff (Effects eff))
 component =
@@ -78,10 +81,10 @@ component =
     isUndoable history =
         isJust $ undoHistoryOnce history
 
--- https://stackoverflow.com/questions/38626443/purescript-halogen-input-element-and-custom-autocorrect-property
---     https://codepen.io/michellebarker/pen/xWPyWj
--- https://pursuit.purescript.org/packages/purescript-halogen/3.1.3/docs/Halogen.HTML.Properties#v:attr
---     boardSizeAttribute ::
+
+    maxUnusedDiskCountProp :: forall r i. HP.IProp r i
+    maxUnusedDiskCountProp =
+        HP.prop (HH.PropName "--maxUnusedDiskCount") maxDiskCount
 
 
     render :: State -> H.ComponentHTML Query
@@ -96,7 +99,8 @@ component =
             (BlackWhite {black: blackUnused, white: whiteUnused}) = actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite gameState
         in
         HH.div
-            [ HE.onMouseUp $ HE.input_ $ MouseUp_Anywhere ]
+            [ HE.onMouseUp $ HE.input_ $ MouseUp_Anywhere 
+            ]
             [ HH.button
                 [ HP.classes [ HH.ClassName "bg-red ba bw1 b--black f3 lh-copy" ]
                 , HP.title "UNDO"
@@ -105,14 +109,21 @@ component =
                 ]
                 [ HH.text "UNDO" ]
             , HH.div
-                [ HP.classes [ HH.ClassName "board-grid" ] ] 
+                [ HP.classes [ HH.ClassName "board-grid" ]
+                , cssStyle "--boardSize" $ show boardSize
+                ] 
                 ( map renderSquare squares )
             , HH.div            
-                [ HP.classes [ HH.ClassName "unusedDisk-grid" ] ]
-                ( map (const  $ renderUnusedDisk Black) $ haskellRange 1 blackUnused)   
-            , HH.div            
-                [ HP.classes [ HH.ClassName "unusedDisk-grid" ] ]
-                ( map (const  $ renderUnusedDisk White) $ haskellRange 1 whiteUnused)                                                
+                [ cssStyle "--maxUnusedDiskCount" $ show maxDiskCount ]  
+                [ HH.div            
+                    [ HP.classes [ HH.ClassName "unusedDisk-grid" ]
+                    ]
+                    ( map (const $ renderUnusedDisk Black) $ haskellRange 1 blackUnused) -- todo use repeat ?
+                , HH.div            
+                    [ HP.classes [ HH.ClassName "unusedDisk-grid" ] 
+                    ]                
+                    ( map (const $ renderUnusedDisk White) $ haskellRange 1 whiteUnused) -- todo use repeat ? 
+                ]                                                            
             ]
         where 
 
@@ -286,6 +297,17 @@ component =
             )
             pure next
 
+        MouseUp_MoveSquare x@(Move_DisplaySquare rec) next -> do
+            -- Events bubble from inner elements to outer elements, so inner event handlers will be run first
+            mouseDown_MoveSquare <- H.gets _.mouseDown_MoveSquare
+
+            when (mouseDown_MoveSquare == Just x) do
+                history <- H.gets _.gameHistory
+                let history' = unsafePartial fromRight $ applyMoveOnHistory rec.move history
+                H.modify (_ { gameHistory = history' })
+
+            pure next       
+
         MouseUp_Anywhere next -> do
             H.modify (_ 
                 { focused_MoveSquare = Nothing
@@ -293,17 +315,7 @@ component =
                 , outflanks_FocusedMoveSquare = Nil
                 }
             )    
-            pure next
-
-        MouseUp_MoveSquare x@(Move_DisplaySquare rec) next -> do
-            mouseDown_MoveSquare <- H.gets _.mouseDown_MoveSquare -- https://purescript-users.ml/t/halogen-double-mouseup-event/257
-
-            when (mouseDown_MoveSquare == Just x) do
-                history <- H.gets _.gameHistory
-                let history' = unsafePartial fromRight $ applyMoveOnHistory rec.move history
-                H.modify (_ { gameHistory = history' })
-
-            pure next               
+            pure next                    
 
         MouseEnter_FilledOpponentSquare (FilledOpponent_DisplaySquare rec) next -> do
             H.modify (_ 
