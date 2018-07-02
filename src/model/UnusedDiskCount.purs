@@ -8,8 +8,9 @@ module UnusedDiskCount
     , transferDiskTo
     , decreaseByOneFor
     , countFrom
+    , maxDiskCount
     )
-    where
+    where 
 
 import Prelude
 import BlackWhite (BlackWhiteH(..), makeBlackWhiteH)
@@ -36,12 +37,12 @@ derive instance eqTagged_UnusedDiskCount :: Eq Tagged_UnusedDiskCount
 makeUnusedDiskCounts :: UnusedDiskCounts
 makeUnusedDiskCounts =
     makeBlackWhiteH 
-        (BlackUnusedDiskCount initUnusedDiskCount) 
-        (WhiteUnusedDiskCount initUnusedDiskCount)
+        (BlackUnusedDiskCount maxDiskCount) 
+        (WhiteUnusedDiskCount maxDiskCount)
 
 
-initUnusedDiskCount :: Int
-initUnusedDiskCount =
+maxDiskCount :: Int
+maxDiskCount =
     div (boardSize * boardSize) 2 -- apparently 
 
 

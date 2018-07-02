@@ -2,7 +2,7 @@ module DisplayConstants
     where
       
 import Prelude
-
+import Disk (Color(..))
 
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
@@ -95,6 +95,11 @@ placedDisk =
     basicDisk
 
 
+unusedDisk :: String
+unusedDisk =
+    " br-100 h1 w1 self-center ba " 
+
+
 potentialDisk_Black :: String
 potentialDisk_Black = 
     potentialDisk <> " bg-black "
@@ -123,3 +128,41 @@ placedDisk_Black =
 placedDisk_White :: String
 placedDisk_White = 
     placedDisk <> " bg-white "        
+
+
+unusedDisk_Black :: String
+unusedDisk_Black = 
+    unusedDisk <> " bg-black "    
+
+
+unusedDisk_White :: String
+unusedDisk_White = 
+    unusedDisk <> " bg-white " 
+
+
+potentialDiskClassesForColor :: Color -> String
+potentialDiskClassesForColor color =
+    case color of
+        Black -> potentialDisk_Black 
+        White -> potentialDisk_White
+
+
+flipDiskClassesForColor :: Color -> String
+flipDiskClassesForColor color =
+    case color of
+        Black -> flipDisk_Black  
+        White -> flipDisk_White
+
+
+placedDiskClassesForColor :: Color -> String
+placedDiskClassesForColor color =
+    case color of
+        Black -> placedDisk_Black
+        White -> placedDisk_White        
+
+
+unusedDiskClassesForColor :: Color -> String
+unusedDiskClassesForColor color =
+    case color of
+        Black -> unusedDisk_Black
+        White -> unusedDisk_White           

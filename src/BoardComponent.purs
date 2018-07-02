@@ -5,6 +5,7 @@ module BoardComponent
     where
 
 import Prelude
+
 import Board (boardElems, movePosition)
 import Control.Monad.Aff (Aff)
 import DOM (DOM)
@@ -18,13 +19,15 @@ import Disk (Color(..), toggleColor)
 import Display (Move_DisplaySquare(..), FilledSelf_DisplaySquare(..), FilledOpponent_DisplaySquare(..), Tagged_DisplaySquare(..), toDisplaySquare, toPosition)
 import DisplayConstants as DC
 import GameHistory (GameHistory, applyMoveOnHistory, makeHistory, undoHistoryOnce)
-import GameState (NextMoves, Tagged_GameState, board_FromTaggedGameState, nextMoves_FromTaggedGameState, mbNextMoveColor_FromTaggedGameState)
+import GameState (NextMoves, Tagged_GameState, board_FromTaggedGameState, nextMoves_FromTaggedGameState, mbNextMoveColor_FromTaggedGameState, actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Lib (haskellRange)
 import Partial.Unsafe (unsafePartial)
 import Position (Position)
+import BlackWhite (BlackWhite(..))
 
 
 data Query a
@@ -75,6 +78,11 @@ component =
     isUndoable history =
         isJust $ undoHistoryOnce history
 
+-- https://stackoverflow.com/questions/38626443/purescript-halogen-input-element-and-custom-autocorrect-property
+--     https://codepen.io/michellebarker/pen/xWPyWj
+-- https://pursuit.purescript.org/packages/purescript-halogen/3.1.3/docs/Halogen.HTML.Properties#v:attr
+--     boardSizeAttribute ::
+
 
     render :: State -> H.ComponentHTML Query
     render state =
@@ -83,6 +91,10 @@ component =
         -- https://github.com/tachyons-css/tachyons/issues/372
         -- https://tachyons-css.slack.com/archives/C2W7UNRMJ/p1529697068000052
         -- https://gridbyexample.com/
+
+        let
+            (BlackWhite {black: blackUnused, white: whiteUnused}) = actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite gameState
+        in
         HH.div
             [ HE.onMouseUp $ HE.input_ $ MouseUp_Anywhere ]
             [ HH.button
@@ -95,9 +107,12 @@ component =
             , HH.div
                 [ HP.classes [ HH.ClassName "board-grid" ] ] 
                 ( map renderSquare squares )
-            -- , HH.div
-            --     [ HP.classes [ HH.ClassName "unusedDisk-grid" ] ] 
-            --     ( map renderUnusedDisk unusedDisks )                
+            , HH.div            
+                [ HP.classes [ HH.ClassName "unusedDisk-grid" ] ]
+                ( map (const  $ renderUnusedDisk Black) $ haskellRange 1 blackUnused)   
+            , HH.div            
+                [ HP.classes [ HH.ClassName "unusedDisk-grid" ] ]
+                ( map (const  $ renderUnusedDisk White) $ haskellRange 1 whiteUnused)                                                
             ]
         where 
 
@@ -231,43 +246,25 @@ component =
                     Tagged_Move_DisplaySquare x ->           
                         -- if isMove_FocusedMoveSquare x || isMove_FocusedFilledOpponentSquare x then
                         if isMove_FocusedMoveSquare x && isMove_MouseDownMoveSquare x then
-                            potentialDiskClassesForColor moveColor
+                            DC.potentialDiskClassesForColor moveColor
                         else
                             ""                            
 
                     Tagged_FilledSelf_DisplaySquare (FilledSelf_DisplaySquare rec)  -> 
-                        placedDiskClassesForColor rec.color
+                        DC.placedDiskClassesForColor rec.color
 
                     Tagged_FilledOpponent_DisplaySquare (FilledOpponent_DisplaySquare rec)  -> 
                         if isOutflankSquare_MouseDownMoveSquare then
-                            flipDiskClassesForColor $ toggleColor rec.color
+                            DC.flipDiskClassesForColor $ toggleColor rec.color
                         else
-                            placedDiskClassesForColor $ rec.color 
+                            DC.placedDiskClassesForColor $ rec.color 
 
 
-            potentialDiskClassesForColor :: Color -> String
-            potentialDiskClassesForColor color =
-                case color of
-                    Black -> DC.potentialDisk_Black 
-                    White -> DC.potentialDisk_White
-
-
-            flipDiskClassesForColor :: Color -> String
-            flipDiskClassesForColor color =
-                case color of
-                    Black -> DC.flipDisk_Black  
-                    White -> DC.flipDisk_White
-
-
-            placedDiskClassesForColor :: Color -> String
-            placedDiskClassesForColor color =
-                case color of
-                    Black -> DC.placedDisk_Black
-                    White -> DC.placedDisk_White
-
-
-        -- renderUnusedDisk :: ? -> H.ComponentHTML Query
-        -- renderUnusedDisk ? =
+        renderUnusedDisk :: Color -> H.ComponentHTML Query
+        renderUnusedDisk color =
+            HH.figure
+                [ HP.classes [ HH.ClassName $ DC.unusedDiskClassesForColor color] ] 
+                []
 
 
     eval :: Query ~> H.ComponentDSL State Query Void (Aff (Effects eff))
