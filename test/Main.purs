@@ -18,7 +18,7 @@ import Data.Record (equal)
 import Data.Tuple (Tuple(..))
 import Disk (Color(..), toggleColor)
 import GameHistory (MoveValidationError(..), applyMoveOnHistory, makeHistory, undoHistoryOnce)
-import GameState (Tagged_GameState(..), Core(..), StartGameState(..), MidGameState(..), EndGameState(..), MidStatus(..), EndStatus(..), actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite, board_FromTaggedGameState, nextMoves_FromTaggedGameState, mbNextMoveColor_FromTaggedGameState, nextMovesFrom, makeStartGameState, makeStartGameStateOn, isForfeitTurn)
+import GameState (Tagged_GameState(..), Core(..), StartGameState(..), MidGameState(..), EndGameState(..), MidStatus(..), EndStatus(..), unusedDiskCounts_FromTaggedGameState, board_FromTaggedGameState, nextMoves_FromTaggedGameState, mbNextMoveColor_FromTaggedGameState, nextMovesFrom, makeStartGameState, makeStartGameStateOn, isForfeitTurn)
 import Lib (haskellRange, mapTakeWhile)
 import Partial.Unsafe (unsafePartial)
 import Position (Position, PositionRow(..), makeValidPosition, positionRec, radiatingPositionRows)
@@ -452,9 +452,9 @@ main = runTest do
                 numberedMovesWithPos1 = movePositionChoices moves1
                 numberedMovesWithPos2 = movePositionChoices moves2
 
-                (BlackWhite {black: bc1, white: wc1}) = actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite taggedGameState1
-                (BlackWhite {black: bc2, white: wc2}) = actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite taggedGameState2
-                (BlackWhite {black: bc3, white: wc3}) = actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite taggedGameState3
+                (BlackWhite {black: bc1, white: wc1}) = unusedDiskCounts_FromTaggedGameState taggedGameState1
+                (BlackWhite {black: bc2, white: wc2}) = unusedDiskCounts_FromTaggedGameState taggedGameState2
+                (BlackWhite {black: bc3, white: wc3}) = unusedDiskCounts_FromTaggedGameState taggedGameState3
 
                 (MidGameState {priorMove: priorMove2, status: _, nextMoves: _, core: _}) = unsafeMidGameStateFrom taggedGameState2
                 (MidGameState {priorMove: priorMove3, status: _, nextMoves: _, core: _}) = unsafeMidGameStateFrom taggedGameState3
@@ -488,7 +488,7 @@ main = runTest do
         test "Black uses very last disk on first move (contrived)" do      
             let 
                 startGameState@(StartGameState {color: c, nextMoves: n, core: (Core {unusedDiskCounts: unusedDiskCounts, board: board})}) = makeStartGameState
-                (BlackWhite {black: bc, white: wc}) = actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite $ Tagged_StartGameState startGameState
+                (BlackWhite {black: bc, white: wc}) = unusedDiskCounts_FromTaggedGameState $ Tagged_StartGameState startGameState
                 unusedDiskCounts'  = unsafePartial $ fromJust $ LZ.index (LZ.iterate (decreaseByOneFor Black) unusedDiskCounts) $ bc - 1
                 unusedDiskCounts'' = unsafePartial $ fromJust $ LZ.index (LZ.iterate (decreaseByOneFor White) unusedDiskCounts') $ wc
 
@@ -530,7 +530,7 @@ main = runTest do
         test "White with no disks for his first move, is given one by Black (contrived)" do
             let 
                 startGameState@(StartGameState {color: c, nextMoves: n, core: (Core {unusedDiskCounts: unusedDiskCounts, board: board})}) = makeStartGameState
-                (BlackWhite {black: bc, white: wc}) = actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite $ Tagged_StartGameState startGameState
+                (BlackWhite {black: bc, white: wc}) = unusedDiskCounts_FromTaggedGameState $ Tagged_StartGameState startGameState
                 unusedDiskCounts'  = unsafePartial $ fromJust $ LZ.index (LZ.iterate (decreaseByOneFor White) unusedDiskCounts) wc 
 
                 taggedGameState1 = Tagged_StartGameState $ StartGameState {color: c, nextMoves: n, core: (Core {unusedDiskCounts: unusedDiskCounts', board: board})}
@@ -547,8 +547,8 @@ main = runTest do
                 history3 = unsafePartial $ fromRight $ applyMoveOnHistory move2 history2
                 midGameState3@(MidGameState {priorMove: _, status: midStatus3, nextMoves: _, core: _}) = unsafeMidGameStateFrom $ NE.last history3    
            
-                (BlackWhite {black: bc1, white: wc1}) = actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite taggedGameState1
-                (BlackWhite {black: bc2, white: wc2}) = actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite taggedGameState2
+                (BlackWhite {black: bc1, white: wc1}) = unusedDiskCounts_FromTaggedGameState taggedGameState1
+                (BlackWhite {black: bc2, white: wc2}) = unusedDiskCounts_FromTaggedGameState taggedGameState2
 
             Assert.equal' "initial unused disk counts" 
                 [bc1, wc1] [32, 0]         
@@ -581,7 +581,7 @@ main = runTest do
         test "NoAvailableDisk (contrived)" do
             let 
                 startGameState@(StartGameState {color: c, nextMoves: n, core: (Core {unusedDiskCounts: unusedDiskCounts, board: board})}) = makeStartGameState
-                (BlackWhite {black: bc, white: wc}) = actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite $ Tagged_StartGameState startGameState
+                (BlackWhite {black: bc, white: wc}) = unusedDiskCounts_FromTaggedGameState $ Tagged_StartGameState startGameState
                 unusedDiskCounts' = unsafePartial $ fromJust $ LZ.index (LZ.iterate (decreaseByOneFor Black) unusedDiskCounts) bc 
 
                 taggedGameState1 = Tagged_StartGameState $ StartGameState {color: c, nextMoves: n, core: (Core {unusedDiskCounts: unusedDiskCounts', board: board})}
@@ -616,7 +616,7 @@ main = runTest do
             let 
                 board' = boardCustom4
                 startGameState@(StartGameState {color: c, nextMoves: n, core: (Core {unusedDiskCounts: unusedDiskCounts, board: board})}) = makeStartGameState
-                (BlackWhite {black: bc, white: wc}) = actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite $ Tagged_StartGameState startGameState
+                (BlackWhite {black: bc, white: wc}) = unusedDiskCounts_FromTaggedGameState $ Tagged_StartGameState startGameState
                 unusedDiskCounts' = unsafePartial $ fromJust $ LZ.index (LZ.iterate (decreaseByOneFor Black) unusedDiskCounts) bc 
                 unusedDiskCounts'' = unsafePartial $ fromJust $ LZ.index (LZ.iterate (decreaseByOneFor White) unusedDiskCounts') wc 
 

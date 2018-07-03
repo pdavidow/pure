@@ -20,8 +20,8 @@ import Data.Maybe (Maybe(..), fromJust, isJust)
 import Disk (Color(..), toggleColor)
 import Display (Move_DisplaySquare(..), FilledSelf_DisplaySquare(..), FilledOpponent_DisplaySquare(..), Tagged_DisplaySquare(..), toDisplaySquare, toPosition)
 import DisplayConstants as DC
-import GameHistory (GameHistory, applyMoveOnHistory, makeHistory, undoHistoryOnce)
-import GameState (NextMoves, Tagged_GameState, board_FromTaggedGameState, nextMoves_FromTaggedGameState, mbNextMoveColor_FromTaggedGameState, actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite)
+import GameHistory (GameHistory, applyMoveOnHistory, makeHistory, undoHistoryOnce) 
+import GameState (NextMoves, Tagged_GameState, board_FromTaggedGameState, nextMoves_FromTaggedGameState, mbNextMoveColor_FromTaggedGameState, unusedDiskCounts_FromTaggedGameState)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -29,7 +29,7 @@ import Halogen.HTML.Properties as HP
 import Lib (cssStyle, haskellRange)
 import Partial.Unsafe (unsafePartial)
 import Position (Position)
-import UnusedDiskCount (maxDiskCount)
+import UnusedDiskCount (UnusedDiskCounts, maxDiskCount, black, white)
 
 
 data Query a
@@ -95,9 +95,6 @@ component =
         -- https://tachyons-css.slack.com/archives/C2W7UNRMJ/p1529697068000052
         -- https://gridbyexample.com/
 
-        let
-            (BlackWhite {black: blackUnused, white: whiteUnused}) = actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite gameState
-        in
         HH.div
             [ HE.onMouseUp $ HE.input_ $ MouseUp_Anywhere 
             ]
@@ -118,14 +115,18 @@ component =
                 [ HH.div            
                     [ HP.classes [ HH.ClassName "unusedDisk-grid" ]
                     ]
-                    ( map (const $ renderUnusedDisk Black) $ haskellRange 1 blackUnused) -- todo use repeat ?
+                    ( map (const $ renderUnusedDisk Black) $ haskellRange 1 $ black unusedDiskCounts) -- todo use repeat ?
                 , HH.div            
                     [ HP.classes [ HH.ClassName "unusedDisk-grid" ] 
                     ]                
-                    ( map (const $ renderUnusedDisk White) $ haskellRange 1 whiteUnused) -- todo use repeat ? 
+                    ( map (const $ renderUnusedDisk White) $ haskellRange 1 $ white unusedDiskCounts) -- todo use repeat ? 
                 ]                                                            
             ]
         where 
+
+        unusedDiskCounts :: UnusedDiskCounts
+        unusedDiskCounts =
+            unusedDiskCounts_FromTaggedGameState gameState
 
 
         moveColor :: Color

@@ -12,10 +12,10 @@ module GameState
     , core_FromTaggedGameState
     , mbNextMoveColor_FromTaggedGameState
     , nextMoves_FromTaggedGameState
+    , unusedDiskCounts_FromTaggedGameState
     , nextMovesFrom
     , applyMoveOnGameState
     , colorResultingInTaggedGameState
-    , actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite
     , isZeroUnusedDiskCount
     , isForfeitTurn
     , makeStartGameStateOn -- todo only used in testing
@@ -23,11 +23,11 @@ module GameState
     where
       
 import Prelude      
-import UnusedDiskCount (UnusedDiskCounts, Tagged_UnusedDiskCount(..), makeUnusedDiskCounts, isZeroCount, transferDiskTo, decreaseByOneFor, countFrom)
+import UnusedDiskCount (UnusedDiskCounts, makeUnusedDiskCounts, transferDiskTo, decreaseByOneFor)
 import Data.List (List(..), concatMap, filter, length, mapMaybe, null, zip)
 import Board ( Board, Move(..), Tagged_Square(..), applyBoardMove, boardArrayAt, initialBoard, squaresColoredCounts_BlackWhite, toPosition, validMoves, moveColor, boardAt, filledSquares, toFilledSquare, isSquareColored, isEmptyAt, boardSquaresColored, cornerCounts_BlackWhite, filledSquaresAdjacentToEmptyCorners ) 
 import Disk (Color(..), toggleColor)
-import BlackWhite (BlackWhite(..), BlackWhiteH(..), makeBlackWhite, makeBlackWhiteH)
+import BlackWhite (BlackWhite(..), makeBlackWhite)
 import Data.Maybe (Maybe(..))
 import Data.Traversable (sum)
 import Data.Tuple (Tuple(..))
@@ -124,14 +124,13 @@ nextMovesFrom color board =
 
 
 isZeroUnusedDiskCount :: Color -> Core -> Boolean
---isZeroUnusedDiskCount color (Core (BlackWhiteH {black: b, white: w}) _) =
 isZeroUnusedDiskCount color (Core rec) =
     let
-        (BlackWhiteH {black: b, white: w}) = rec.unusedDiskCounts
+        (BlackWhite {black: b, white: w}) = rec.unusedDiskCounts
     in
         case color of
-            Black -> isZeroCount $ Tagged_BlackUnusedDiskCount b
-            White -> isZeroCount $ Tagged_WhiteUnusedDiskCount w     
+            Black -> b == 0
+            White -> w == 0     
 
 
 applyMoveOnGameState :: Move -> Tagged_GameState -> Tagged_GameState
@@ -263,12 +262,6 @@ nextMoves_FromTaggedGameState taggedGameState =
         Tagged_StartGameState (StartGameState rec) -> rec.nextMoves
         Tagged_MidGameState (MidGameState rec)     -> rec.nextMoves
         Tagged_EndGameState _                      -> Nil      
-        
- 
-actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite :: Tagged_GameState -> BlackWhite Int
-actual_UnusedDiskCounts_FromTaggedGameState_BlackWhite taggedGameState =   
-    makeBlackWhite (countFrom $ Tagged_BlackUnusedDiskCount b) (countFrom $ Tagged_WhiteUnusedDiskCount w)
-       where (BlackWhiteH {black: b, white: w}) = unusedDiskCounts_FromTaggedGameState taggedGameState
 
 
 isForfeitTurn :: Tagged_GameState -> Boolean
