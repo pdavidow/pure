@@ -1,8 +1,9 @@
 {
   "name": "pure",
-  "set": "psc-0.11.7-20180524",
+  "set": "psc-0.11.7-20180524-1",
   "source": "https://github.com/pdavidow/package-sets.git",
   "depends": [
+    "gametree",
     "halogen-css",
     "dom",
     "dom-classy",
