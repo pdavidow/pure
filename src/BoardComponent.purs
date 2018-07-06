@@ -419,8 +419,15 @@ component =
                 Nothing -> do
                     pure next
 
-                Just history -> do
-                    H.modify (_ { gameHistory = history})
+                Just history -> do                    
+                    let gameState' = gameStateOn history
+                    searchDepth <- H.gets _.searchDepth
+
+                    H.modify (_ 
+                        { gameHistory = history
+                        , mb_suggestedMove = mbBestNextMove searchDepth gameState'
+                        }
+                    )
                     pure next
 
            
