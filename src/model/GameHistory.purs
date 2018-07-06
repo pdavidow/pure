@@ -16,6 +16,7 @@ import Data.Maybe (Maybe(..), fromJust, fromMaybe)
 import Data.List (List, elem, drop, fromFoldable, null, reverse)
 import Disk (Color(..), toggleColor)
 import Data.Either (Either(..))
+import Data.Lazy (Lazy, defer, force)
 
 
 data MoveValidationError
@@ -110,17 +111,17 @@ undoHistoryOnceForColor color history =
             NE.fromList $ NE.init history
 
         else
-            case lastGameState of
-                Tagged_StartGameState _ -> 
-                    Nothing -- should never get here
-
-                Tagged_MidGameState _ ->
+            let
+                undoOnce :: Lazy (Maybe GameHistory)
+                undoOnce = defer $ \ _ -> 
                     history
                         # NE.reverse
                         # NE.dropWhile (\ x -> colorResultingInTaggedGameState x == toggledColor)
                         # drop 1
                         # reverse
                         # NE.fromList
-
-                Tagged_EndedGameState _ -> 
-                    Nothing -- should never get here                    
+            in
+                case lastGameState of
+                    Tagged_StartGameState _ -> Nothing -- should never get here
+                    Tagged_MidGameState _   -> force undoOnce
+                    Tagged_EndedGameState _ -> force undoOnce                  
