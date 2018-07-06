@@ -44,7 +44,7 @@ validateMoveOnHistory (Move rec) history =
             case lastGameState of
                 Tagged_StartGameState _ -> false
                 Tagged_MidGameState   _ -> false
-                Tagged_EndGameState   _ -> true
+                Tagged_EndedGameState _ -> true
 
         isWrongColor = 
             rec.color /= fromMaybe Black (mbNextMoveColor_FromTaggedGameState lastGameState) -- should never use default
@@ -103,7 +103,7 @@ undoHistoryOnceForColor color history =
                     Tagged_MidGameState _ -> 
                         Nothing -- should never get here
 
-                    Tagged_EndGameState _ -> 
+                    Tagged_EndedGameState _ -> 
                         Nothing -- should never get here
 
         else if isForfeitTurn lastGameState then
@@ -122,5 +122,5 @@ undoHistoryOnceForColor color history =
                         # reverse
                         # NE.fromList
 
-                Tagged_EndGameState _ -> 
+                Tagged_EndedGameState _ -> 
                     Nothing -- should never get here                    

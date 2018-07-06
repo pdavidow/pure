@@ -18,7 +18,7 @@ import Data.Record (equal)
 import Data.Tuple (Tuple(..))
 import Disk (Color(..), toggleColor)
 import GameHistory (MoveValidationError(..), applyMoveOnHistory, makeHistory, undoHistoryOnce)
-import GameState (Tagged_GameState(..), Core(..), StartGameState(..), MidGameState(..), EndGameState(..), MidStatus(..), EndStatus(..), unusedDiskCounts_FromTaggedGameState, board_FromTaggedGameState, nextMoves_FromTaggedGameState, mbNextMoveColor_FromTaggedGameState, nextMovesFrom, makeStartGameState, makeStartGameStateOn, isForfeitTurn)
+import GameState (Tagged_GameState(..), Core(..), StartGameState(..), MidGameState(..), EndedGameState(..), MidStatus(..), EndStatus(..), unusedDiskCounts_FromTaggedGameState, board_FromTaggedGameState, nextMoves_FromTaggedGameState, mbNextMoveColor_FromTaggedGameState, nextMovesFrom, makeStartGameState, makeStartGameStateOn, isForfeitTurn)
 import Lib (haskellRange, mapTakeWhile)
 import Partial.Unsafe (unsafePartial)
 import Position (Position, PositionRow(..), makeValidPosition, positionRec, radiatingPositionRows)
@@ -104,10 +104,10 @@ unsafeMidGameStateFrom taggedGameState =
         Tagged_MidGameState x -> x
 
 
-unsafeEndGameStateFrom :: Tagged_GameState -> EndGameState
-unsafeEndGameStateFrom taggedGameState =
+unsafeEndedGameStateFrom :: Tagged_GameState -> EndedGameState
+unsafeEndedGameStateFrom taggedGameState =
     unsafePartial $ case taggedGameState of
-        Tagged_EndGameState x -> x
+        Tagged_EndedGameState x -> x
 
 
 filledPositions_BlackWhite :: Board -> BlackWhite (Array (Array Int))         
@@ -498,7 +498,7 @@ main = runTest do
                 move1 = unsafePartial $ fromJust $ head moves1
 
                 history2 = unsafePartial $ fromRight $ applyMoveOnHistory move1 history1 
-                (EndGameState {priorMove: _, status: endReason, core: _}) = unsafeEndGameStateFrom $ NE.last history2
+                (EndedGameState {priorMove: _, status: endReason, core: _}) = unsafeEndedGameStateFrom $ NE.last history2
 
             Assert.equal' "endReason" endReason NoUnusedDisksForBoth 
 
@@ -510,7 +510,7 @@ main = runTest do
                 move1 = unsafePartial $ fromJust $ head moves1
 
                 history2 = unsafePartial $ fromRight $ applyMoveOnHistory move1 history1 
-                (EndGameState {priorMove: _, status: endReason, core: _}) = unsafeEndGameStateFrom $ NE.last history2
+                (EndedGameState {priorMove: _, status: endReason, core: _}) = unsafeEndedGameStateFrom $ NE.last history2
 
             Assert.equal' "endReason" endReason NoValidMoves 
 

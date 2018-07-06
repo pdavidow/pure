@@ -31,6 +31,7 @@ module Board
     , diskFrom
     , outflankPositions
     , outflankPositions_Traversing
+    , dummyMove
     --, flipAt -- Should NOT be exposed (but ok to temp expose for sake of commented-out test)
     )
     where
@@ -220,7 +221,7 @@ outflankSquares (Move rec) =
 outflankSquares_Traversing :: Position -> Move -> List FilledSquare
 outflankSquares_Traversing position (Move rec) =
     rec.outflanks
-        # filter (\ (FilledRow filledSquares) -> elem position $ map (toPosition <<< Tagged_FilledSquare) filledSquares)
+        # filter (\ (FilledRow filledSquares') -> elem position $ map (toPosition <<< Tagged_FilledSquare) filledSquares')
         # filledRowsToSquares
 
 

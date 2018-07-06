@@ -18,10 +18,15 @@
     align-self: center
   }
 
+  .unusedDiskGrids-grid {
+    display: grid;
+    /* grid-template-columns: 80px; */
+    grid-auto-rows: 30px;
+  }
+
   .unusedDisk-grid {
     display: grid;
     grid-template-columns: repeat(var(--maxUnusedDiskCount), 20px); 
   }
   .unusedDisk-grid-item {
-    align-self: center
   }

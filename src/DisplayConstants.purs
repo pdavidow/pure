@@ -55,24 +55,24 @@ squareBorder_Default =
     " outline " 
 
 
-moveSquareBorder_FocusedMoveSquare :: String
-moveSquareBorder_FocusedMoveSquare = 
-    " outline " 
+moveSquareBorder_NonSuggested :: String
+moveSquareBorder_NonSuggested = 
+    squareBorder_Default 
 
 
-moveSquareBorder_FocusedFilledOpponentSquare :: String
-moveSquareBorder_FocusedFilledOpponentSquare = 
-    " outline " 
+moveSquareBorder_Suggested :: String
+moveSquareBorder_Suggested = 
+    " ba bw3 b--light-purple " 
 
 
 outflankSquareBorder_FocusedMoveSquare :: String
 outflankSquareBorder_FocusedMoveSquare = 
-    " outline "  -- " ba bw1 b--dotted " 
+    squareBorder_Default  -- " ba bw1 b--dotted " 
 
 
 outflankSquareBorder_FocusedFilledOpponentSquare :: String
 outflankSquareBorder_FocusedFilledOpponentSquare = 
-    " outline "  -- " ba bw1 b--dotted " 
+    squareBorder_Default  -- " ba bw1 b--dotted " 
 
 
 basicDisk :: String

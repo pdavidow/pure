@@ -1,7 +1,7 @@
 module Lib 
     ( haskellRange
     , mapTakeWhile
-    , cssStyle
+    , setCssProp
     )
     where
   
@@ -28,6 +28,6 @@ mapTakeWhile _ _ Nil = Nil
 mapTakeWhile f p (x:xs) = let y = f x in if p y then y : mapTakeWhile f p xs else Nil    
 
 
-cssStyle :: String -> String -> forall t1 t2. H.IProp ( style :: String | t1) t2
-cssStyle key value =
+setCssProp :: String -> String -> forall t1 t2. H.IProp ( style :: String | t1) t2
+setCssProp key value =
     HC.style do (CSS.key (CSS.fromString key) value)

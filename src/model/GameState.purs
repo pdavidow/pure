@@ -2,10 +2,11 @@ module GameState
     ( Core(..)
     , StartGameState(..)
     , MidGameState(..)
-    , EndGameState(..)
+    , EndedGameState(..)
     , Tagged_GameState(..)
     , MidStatus(..)
     , EndStatus(..)
+    , Winner(..)
     , NextMoves
     , makeStartGameState
     , board_FromTaggedGameState
@@ -18,6 +19,7 @@ module GameState
     , colorResultingInTaggedGameState
     , isZeroUnusedDiskCount
     , isForfeitTurn
+    , winner
     , makeStartGameStateOn -- todo only used in testing
     )
     where
@@ -43,14 +45,14 @@ data StartGameState = StartGameState {color :: Color, nextMoves :: NextMoves, co
 
 data MidGameState = MidGameState {priorMove :: Move, status :: MidStatus, nextMoves :: NextMoves, core :: Core}
 
-data EndGameState = EndGameState {priorMove :: Move, status :: EndStatus, core :: Core}
+data EndedGameState = EndedGameState {priorMove :: Move, status :: EndStatus, core :: Core}
 
 type NextMoves = List Move
 
 data Tagged_GameState
     = Tagged_StartGameState StartGameState
     | Tagged_MidGameState   MidGameState
-    | Tagged_EndGameState   EndGameState
+    | Tagged_EndedGameState EndedGameState
 
 data MidStatus
     = Normal
@@ -59,19 +61,16 @@ data MidStatus
 
 data EndStatus
     = NoUnusedDisksForBoth
-    | NoValidMoves
-
--- data GameSummary = GameSummary EndStatus (BlackWhite SquareCount)   
+    | NoValidMoves 
 
 data Winner
     = WinnerColor Color
     | Tie
 
-
 derive instance eqCore :: Eq Core    
 derive instance eqStartGameState :: Eq StartGameState
 derive instance eqMidGameState :: Eq MidGameState
-derive instance eqEndGameState :: Eq EndGameState
+derive instance eqEndedGameState :: Eq EndedGameState
 derive instance eqTagged_GameState :: Eq Tagged_GameState
 derive instance eqMidStatus :: Eq MidStatus
 derive instance eqEndStatus :: Eq EndStatus
@@ -86,7 +85,7 @@ instance nodeTagged_GameState :: Node Tagged_GameState
         case taggedGameState of
             Tagged_StartGameState _ -> false
             Tagged_MidGameState   _ -> false
-            Tagged_EndGameState   _ -> true
+            Tagged_EndedGameState   _ -> true
 
 
     score :: Tagged_GameState -> Score
@@ -158,7 +157,7 @@ applyMoveOnGameState move taggedGameState =
         case taggedGameState of
             Tagged_StartGameState _ -> processMidGameState makeMidGameState
             Tagged_MidGameState   _ -> processMidGameState makeMidGameState
-            Tagged_EndGameState   _ -> taggedGameState -- should never get here    
+            Tagged_EndedGameState _ -> taggedGameState -- should never get here    
 
 
 processMidGameState :: MidGameState -> Tagged_GameState
@@ -174,11 +173,11 @@ processMidGameState midGameState@(MidGameState {priorMove: priorMove, status: _,
         
         end_NoValidMoves :: Tagged_GameState
         end_NoValidMoves = 
-            Tagged_EndGameState $ EndGameState {priorMove: priorMove, status: NoValidMoves, core: core}
+            Tagged_EndedGameState $ EndedGameState {priorMove: priorMove, status: NoValidMoves, core: core}
         
         end_NoUnusedDisksForBoth :: Tagged_GameState
         end_NoUnusedDisksForBoth = 
-            Tagged_EndGameState $ EndGameState {priorMove: priorMove, status: NoUnusedDisksForBoth, core: core}
+            Tagged_EndedGameState $ EndedGameState {priorMove: priorMove, status: NoUnusedDisksForBoth, core: core}
 
         forfeitTurn :: Tagged_GameState
         forfeitTurn = 
@@ -212,7 +211,7 @@ core_FromTaggedGameState taggedGameState =
     case taggedGameState of
         Tagged_StartGameState (StartGameState rec) -> rec.core
         Tagged_MidGameState (MidGameState rec)     -> rec.core
-        Tagged_EndGameState (EndGameState rec)     -> rec.core
+        Tagged_EndedGameState (EndedGameState rec) -> rec.core
 
 
 unusedDiskCounts_FromTaggedGameState :: Tagged_GameState -> UnusedDiskCounts
@@ -229,8 +228,8 @@ colorResultingInTaggedGameState :: Tagged_GameState -> Color
 colorResultingInTaggedGameState taggedGameState =
     case taggedGameState of
         Tagged_StartGameState (StartGameState rec) -> rec.color
-        Tagged_MidGameState (MidGameState rec) -> moveColor rec.priorMove
-        Tagged_EndGameState (EndGameState rec) -> moveColor rec.priorMove
+        Tagged_MidGameState (MidGameState rec)     -> moveColor rec.priorMove
+        Tagged_EndedGameState (EndedGameState rec) -> moveColor rec.priorMove
 
 
 mbNextMoveColor_FromTaggedGameState :: Tagged_GameState -> Maybe Color
@@ -238,7 +237,7 @@ mbNextMoveColor_FromTaggedGameState taggedGameState =
     case taggedGameState of
         Tagged_StartGameState (StartGameState rec) -> Just rec.color
         Tagged_MidGameState midGameState -> Just $ nextMoveColor_FromMidGameState midGameState
-        Tagged_EndGameState _ -> Nothing        
+        Tagged_EndedGameState _ -> Nothing        
         
 
 nextMoveColor_FromMidGameState :: MidGameState -> Color
@@ -252,9 +251,9 @@ nextMoveColor_FromMidGameState (MidGameState rec) =
 mbPriorMove_FromTaggedGameState :: Tagged_GameState -> Maybe Move
 mbPriorMove_FromTaggedGameState taggedGameState =    
     case taggedGameState of
-        Tagged_StartGameState _                -> Nothing
-        Tagged_MidGameState (MidGameState rec) -> Just rec.priorMove
-        Tagged_EndGameState (EndGameState rec) -> Just rec.priorMove               
+        Tagged_StartGameState _                    -> Nothing
+        Tagged_MidGameState (MidGameState rec)     -> Just rec.priorMove
+        Tagged_EndedGameState (EndedGameState rec) -> Just rec.priorMove               
 
 
 nextMoves_FromTaggedGameState :: Tagged_GameState -> NextMoves
@@ -262,7 +261,7 @@ nextMoves_FromTaggedGameState taggedGameState =
     case taggedGameState of
         Tagged_StartGameState (StartGameState rec) -> rec.nextMoves
         Tagged_MidGameState (MidGameState rec)     -> rec.nextMoves
-        Tagged_EndGameState _                      -> Nil      
+        Tagged_EndedGameState _                    -> Nil      
 
 
 isForfeitTurn :: Tagged_GameState -> Boolean
@@ -277,8 +276,23 @@ isForfeitTurn taggedGameState =
                 ForfeitTurn_Rule2 -> true
                 TransferDisk_Rule9 -> false
 
-        Tagged_EndGameState _ -> 
+        Tagged_EndedGameState _ -> 
             false
+
+
+winner :: EndedGameState -> Winner
+winner x =  
+    -- Rule 10: Disks are counted and the player with the majority of their color showing is the winner.
+    
+    let
+        (BlackWhite {black: b, white: w}) = squaresColoredCounts_BlackWhite $ board_FromTaggedGameState $ Tagged_EndedGameState x
+    in
+        if b > w then
+            WinnerColor Black
+        else if w > b then
+            WinnerColor White 
+        else
+            Tie
 
 ---------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------
@@ -431,10 +445,10 @@ heuristic_score taggedGameState =
                                 (74.396 * heuristic_frontierDisks nextMoveColor board) + 
                                     (10.0 * heuristic_diskSquares nextMoveColor board)                        
 
-        Tagged_EndGameState x@(EndGameState rec) -> 
+        Tagged_EndedGameState x@(EndedGameState rec) -> 
             let
                 color = moveColor rec.priorMove 
-                board = board_FromTaggedGameState $ Tagged_EndGameState x
+                board = board_FromTaggedGameState $ Tagged_EndedGameState x
             in
                 heuristic_pieceDifference (toggleColor color) board
 

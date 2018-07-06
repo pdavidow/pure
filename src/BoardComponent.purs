@@ -5,9 +5,7 @@ module BoardComponent
     where
 
 import Prelude
-
-import BlackWhite (BlackWhite(..))
-import Board (boardElems, movePosition)
+import Board (Move, boardElems, movePosition)
 import BoardSize (boardSize)
 import Control.Monad.Aff (Aff)
 import DOM (DOM)
@@ -18,17 +16,19 @@ import Data.List (List(Nil), elem)
 import Data.List.NonEmpty as NE
 import Data.Maybe (Maybe(..), fromJust, isJust)
 import Disk (Color(..), toggleColor)
-import Display (Move_DisplaySquare(..), FilledSelf_DisplaySquare(..), FilledOpponent_DisplaySquare(..), Tagged_DisplaySquare(..), toDisplaySquare, toPosition)
+import Display (Move_DisplaySquare(..), FilledSelf_DisplaySquare(..), FilledOpponent_DisplaySquare(..), Empty_EndedGame_DisplaySquare(..), Filled_EndedGame_DisplaySquare(..), Tagged_DisplaySquare(..), toDisplaySquare, toPosition, status)
 import DisplayConstants as DC
-import GameHistory (GameHistory, applyMoveOnHistory, makeHistory, undoHistoryOnce) 
+import GameHistory (GameHistory, applyMoveOnHistory, makeHistory, undoHistoryOnce)
 import GameState (NextMoves, Tagged_GameState, board_FromTaggedGameState, nextMoves_FromTaggedGameState, mbNextMoveColor_FromTaggedGameState, unusedDiskCounts_FromTaggedGameState)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Lib (cssStyle, haskellRange)
+import Lib (setCssProp, haskellRange)
 import Partial.Unsafe (unsafePartial)
 import Position (Position)
+import Search (SearchDepth(..), mbBestNextMove, defaultSearchDepth)
+import Type.Data.Boolean (kind Boolean)
 import UnusedDiskCount (UnusedDiskCounts, maxDiskCount, black, white)
 
 
@@ -45,11 +45,13 @@ data Query a
 
 type State = 
     { gameHistory :: GameHistory
-    , focused_MoveSquare :: Maybe Move_DisplaySquare
-    , mouseDown_MoveSquare :: Maybe Move_DisplaySquare
+    , mb_focused_MoveSquare :: Maybe Move_DisplaySquare
+    , mb_mouseDown_MoveSquare :: Maybe Move_DisplaySquare
     , moves_FocusedFilledOpponentSquare :: List Position   
     , outflanks_FocusedMoveSquare :: List Position 
     , outflanks_FocusedFilledOpponentSquare :: List Position
+    , searchDepth :: SearchDepth
+    , mb_suggestedMove :: Maybe Move
     }
 
 type Effects eff = ( dom :: DOM | eff )
@@ -69,11 +71,13 @@ component =
     initialState :: State 
     initialState =
         { gameHistory: makeHistory
-        , focused_MoveSquare: Nothing
-        , mouseDown_MoveSquare: Nothing
+        , mb_focused_MoveSquare: Nothing
+        , mb_mouseDown_MoveSquare: Nothing
         , outflanks_FocusedMoveSquare: Nil
         , moves_FocusedFilledOpponentSquare: Nil        
         , outflanks_FocusedFilledOpponentSquare: Nil
+        , searchDepth: defaultSearchDepth
+        , mb_suggestedMove: Nothing
         }
   
 
@@ -87,6 +91,11 @@ component =
         HP.prop (HH.PropName "--maxUnusedDiskCount") maxDiskCount
 
 
+    gameStateOn :: GameHistory -> Tagged_GameState
+    gameStateOn history = 
+        NE.last history
+
+
     render :: State -> H.ComponentHTML Query
     render state =
         -- https://www.w3schools.com/css/css_grid.asp
@@ -98,20 +107,15 @@ component =
         HH.div
             [ HE.onMouseUp $ HE.input_ $ MouseUp_Anywhere 
             ]
-            [ HH.button
-                [ HP.classes [ HH.ClassName "bg-red ba bw1 b--black f3 lh-copy" ]
-                , HP.title "UNDO"
-                , HP.enabled $ isUndoable state.gameHistory
-                , HE.onClick (HE.input_ Undo)
-                ]
-                [ HH.text "UNDO" ]
-            , HH.div
+            [ HH.div
                 [ HP.classes [ HH.ClassName "board-grid" ]
-                , cssStyle "--boardSize" $ show boardSize
+                , setCssProp "--boardSize" $ show boardSize
                 ] 
                 ( map renderSquare squares )
             , HH.div            
-                [ cssStyle "--maxUnusedDiskCount" $ show maxDiskCount ]  
+                [ HP.classes [ HH.ClassName "unusedDiskGrids-grid" ]
+                , setCssProp "--maxUnusedDiskCount" $ show maxDiskCount 
+                ]  
                 [ HH.div            
                     [ HP.classes [ HH.ClassName "unusedDisk-grid" ]
                     ]
@@ -120,7 +124,17 @@ component =
                     [ HP.classes [ HH.ClassName "unusedDisk-grid" ] 
                     ]                
                     ( map (const $ renderUnusedDisk White) $ haskellRange 1 $ white unusedDiskCounts) -- todo use repeat ? 
-                ]                                                            
+                ] 
+            , HH.button
+                [ HP.classes [ HH.ClassName "mt4 ml4" ]
+                , HP.enabled $ isUndoable state.gameHistory
+                , HE.onClick (HE.input_ Undo)
+                ]
+                [ HH.text "Undo" ] 
+            , HH.div
+                [ HP.classes [ HH.ClassName "mt4 ml4 f3 lh-copy b" ]
+                ]
+                [ HH.text $ "STATUS: " <> status gameState ]                 
             ]
         where 
 
@@ -129,20 +143,20 @@ component =
             unusedDiskCounts_FromTaggedGameState gameState
 
 
-        moveColor :: Color
-        moveColor =
-            unsafePartial fromJust $ mbNextMoveColor_FromTaggedGameState gameState
+        mbMoveColor :: Maybe Color
+        mbMoveColor =
+            mbNextMoveColor_FromTaggedGameState gameState
 
 
         gameState :: Tagged_GameState
         gameState = 
-            NE.last state.gameHistory
+            gameStateOn state.gameHistory
 
 
         squares :: Array Tagged_DisplaySquare
         squares =
             (boardElems $ board_FromTaggedGameState gameState)
-                # map (toDisplaySquare moveColor moves)    
+                # map (toDisplaySquare gameState)  
 
 
         moves :: NextMoves
@@ -173,17 +187,7 @@ component =
 
                     Tagged_Move_DisplaySquare x ->
                         [ HP.classes 
-                            [ HH.ClassName $ DC.fillableGridItem <> 
-                                if isMove_FocusedMoveSquare x then  
-                                    DC.moveSquareColor_FocusedMoveSquare <> 
-                                    DC.moveSquareBorder_FocusedMoveSquare                            
-                                else if isMove_FocusedFilledOpponentSquare x then 
-                                    DC.moveSquareColor_FocusedFilledOpponentSquare <> 
-                                    DC.moveSquareBorder_FocusedFilledOpponentSquare
-                                else
-                                    DC.moveSquareColor <> 
-                                    DC.squareBorder_Default
-                            ]                       
+                            [ HH.ClassName $ DC.fillableGridItem <> squareProps__Move_DisplaySquare x ]                       
                         , HE.onMouseEnter $ HE.input_ $ MouseEnter_MoveSquare x
                         , HE.onMouseLeave $ HE.input_ $ MouseLeave_MoveSquare
                         , HE.onMouseDown $ HE.input_ $ MouseDown_MoveSquare x
@@ -218,10 +222,54 @@ component =
                         , HE.onDragStart $ HE.input $ PreventDefault <<< toEvent
                         ] 
 
+                    Tagged_Empty_EndedGame_DisplaySquare x ->
+                        [ HP.classes 
+                            [ HH.ClassName $ DC.basicGridItem <> 
+                                DC.defaultSquareColor <> 
+                                DC.squareBorder_Default
+                            ]
+                        , HE.onDragStart $ HE.input $ PreventDefault <<< toEvent
+                        ]
+
+                    Tagged_Filled_EndedGame_DisplaySquare x ->
+                        [ HP.classes 
+                            [ HH.ClassName $ DC.fillableGridItem <> 
+                                DC.defaultSquareColor <> 
+                                DC.squareBorder_Default
+                            ]
+                        , HE.onDragStart $ HE.input $ PreventDefault <<< toEvent
+                        ] 
+
+
+            squareProps__Move_DisplaySquare :: Move_DisplaySquare -> String
+            squareProps__Move_DisplaySquare moveSquare =
+                backgroundColorProps <> borderProps
+                where
+                    backgroundColorProps =
+                        if isMove_FocusedMoveSquare moveSquare then  
+                            DC.moveSquareColor_FocusedMoveSquare 
+                        else if isMove_FocusedFilledOpponentSquare moveSquare then  
+                            DC.moveSquareColor_FocusedFilledOpponentSquare
+                        else
+                            DC.moveSquareColor                    
+
+                    borderProps = 
+                        if isSuggestedMoveSquare moveSquare then
+                            DC.moveSquareBorder_Suggested
+                        else 
+                            DC.moveSquareBorder_NonSuggested
+
+
+            isSuggestedMoveSquare :: Move_DisplaySquare -> Boolean
+            isSuggestedMoveSquare (Move_DisplaySquare rec) =
+                case state.mb_suggestedMove of
+                    Nothing -> false
+                    Just move -> move == rec.move
+
 
             isMove_FocusedMoveSquare :: Move_DisplaySquare -> Boolean
             isMove_FocusedMoveSquare moveSquare =
-                Just moveSquare == state.focused_MoveSquare 
+                Just moveSquare == state.mb_focused_MoveSquare 
 
 
             isMove_FocusedFilledOpponentSquare :: Move_DisplaySquare -> Boolean
@@ -236,7 +284,7 @@ component =
 
             isOutflankSquare_MouseDownMoveSquare :: Boolean
             isOutflankSquare_MouseDownMoveSquare =
-                isOutflankSquare_FocusedMoveSquare && isJust state.mouseDown_MoveSquare
+                isOutflankSquare_FocusedMoveSquare && isJust state.mb_mouseDown_MoveSquare
 
 
             isOutflankSquare_FocusedFilledOpponentSquare :: Boolean
@@ -251,8 +299,8 @@ component =
                         ""
 
                     Tagged_Move_DisplaySquare x ->           
-                        if isMove_FocusedMoveSquare x && isJust state.mouseDown_MoveSquare then
-                            DC.potentialDiskClassesForColor moveColor
+                        if isMove_FocusedMoveSquare x && isJust state.mb_mouseDown_MoveSquare then
+                            DC.potentialDiskClassesForColor $ unsafePartial fromJust $ mbMoveColor
                         else
                             ""                            
 
@@ -264,6 +312,12 @@ component =
                             DC.flipDiskClassesForColor $ toggleColor rec.color
                         else
                             DC.placedDiskClassesForColor $ rec.color 
+
+                    Tagged_Empty_EndedGame_DisplaySquare _ ->       
+                        ""                            
+                        
+                    Tagged_Filled_EndedGame_DisplaySquare (Filled_EndedGame_DisplaySquare rec) -> 
+                        DC.placedDiskClassesForColor rec.color                    
 
 
         renderUnusedDisk :: Color -> H.ComponentHTML Query
@@ -278,7 +332,7 @@ component =
         MouseEnter_MoveSquare x@(Move_DisplaySquare rec) next -> do
             H.modify (_ 
                 { outflanks_FocusedMoveSquare = rec.outflanks
-                , focused_MoveSquare = Just x 
+                , mb_focused_MoveSquare = Just x 
                 }
             )
             pure next
@@ -286,33 +340,40 @@ component =
         MouseLeave_MoveSquare next -> do
             H.modify (_ 
                 { outflanks_FocusedMoveSquare = Nil
-                , focused_MoveSquare = Nothing
+                , mb_focused_MoveSquare = Nothing
                 }
             )
             pure next
 
         MouseDown_MoveSquare x next -> do
             H.modify (_ 
-                { mouseDown_MoveSquare = Just x
+                { mb_mouseDown_MoveSquare = Just x
                 }
             )
             pure next
 
         MouseUp_MoveSquare x@(Move_DisplaySquare rec) next -> do
             -- Events bubble from inner elements to outer elements, so inner event handlers will be run first
-            mouseDown_MoveSquare <- H.gets _.mouseDown_MoveSquare
+            mouseDown_MoveSquare <- H.gets _.mb_mouseDown_MoveSquare
 
             when (mouseDown_MoveSquare == Just x) do
-                history <- H.gets _.gameHistory
+                history <- H.gets _.gameHistory            
                 let history' = unsafePartial fromRight $ applyMoveOnHistory rec.move history
-                H.modify (_ { gameHistory = history' })
+                let gameState' = gameStateOn history'
+                searchDepth <- H.gets _.searchDepth
+
+                H.modify (_ 
+                    { gameHistory = history'
+                    --, mb_suggestedMove = mbBestNextMove searchDepth gameState'
+                    }
+                )
 
             pure next       
 
         MouseUp_Anywhere next -> do
             H.modify (_ 
-                { focused_MoveSquare = Nothing
-                , mouseDown_MoveSquare = Nothing                
+                { mb_focused_MoveSquare = Nothing
+                , mb_mouseDown_MoveSquare = Nothing                
                 , outflanks_FocusedMoveSquare = Nil
                 }
             )    
