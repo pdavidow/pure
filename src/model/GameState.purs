@@ -64,7 +64,7 @@ data EndStatus
     | NoValidMoves 
 
 data Winner
-    = WinnerColor Color
+    = WinColor Color
     | Tie
 
 derive instance eqCore :: Eq Core    
@@ -288,9 +288,9 @@ winner x =
         (BlackWhite {black: b, white: w}) = squaresColoredCounts_BlackWhite $ board_FromTaggedGameState $ Tagged_EndedGameState x
     in
         if b > w then
-            WinnerColor Black
+            WinColor Black
         else if w > b then
-            WinnerColor White 
+            WinColor White 
         else
             Tie
 

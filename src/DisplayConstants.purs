@@ -50,6 +50,16 @@ outflankSquareColor_FocusedFilledOpponentSquare =
     " bg-light-yellow "
 
 
+winEndedSquareColor :: String
+winEndedSquareColor =
+    " bg-moon-gray "
+
+
+tieEndedSquareColor :: String
+tieEndedSquareColor =
+    " bg-ightest-blue "
+
+
 squareBorder_Default :: String
 squareBorder_Default = 
     " outline " 

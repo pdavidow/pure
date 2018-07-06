@@ -5,8 +5,10 @@ module BoardComponent
     where
 
 import Prelude
+
 import Board (Move, boardElems, movePosition)
 import BoardSize (boardSize)
+import CSS (offset)
 import Control.Monad.Aff (Aff)
 import DOM (DOM)
 import DOM.Classy.Event (preventDefault, toEvent)
@@ -231,14 +233,24 @@ component =
                         , HE.onDragStart $ HE.input $ PreventDefault <<< toEvent
                         ]
 
-                    Tagged_Filled_EndedGame_DisplaySquare x ->
-                        [ HP.classes 
-                            [ HH.ClassName $ DC.fillableGridItem <> 
-                                DC.defaultSquareColor <> 
-                                DC.squareBorder_Default
-                            ]
-                        , HE.onDragStart $ HE.input $ PreventDefault <<< toEvent
-                        ] 
+                    Tagged_Filled_EndedGame_DisplaySquare (Filled_EndedGame_DisplaySquare rec) ->
+                        let
+                            squareColor = 
+                                case rec.mbIsWinningColor of
+                                    Nothing -> DC.tieEndedSquareColor 
+                                    
+                                    Just boolean ->
+                                        case boolean of
+                                            true  -> DC.winEndedSquareColor 
+                                            false -> DC.defaultSquareColor
+                        in
+                            [ HP.classes 
+                                [ HH.ClassName $ DC.fillableGridItem <> 
+                                    squareColor <> 
+                                    DC.squareBorder_Default
+                                ]
+                            , HE.onDragStart $ HE.input $ PreventDefault <<< toEvent
+                            ] 
 
 
             squareProps__Move_DisplaySquare :: Move_DisplaySquare -> String

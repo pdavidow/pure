@@ -53,6 +53,7 @@ newtype Empty_EndedGame_DisplaySquare = Empty_EndedGame_DisplaySquare
 data Filled_EndedGame_DisplaySquare = Filled_EndedGame_DisplaySquare 
     { position :: Position
     , color :: Color
+    , mbIsWinningColor :: Maybe Boolean
     }      
 
 data Tagged_DisplaySquare 
@@ -89,8 +90,8 @@ toDisplaySquare taggedGameState taggedSquare =
         Tagged_MidGameState _ ->
             toDisplaySquare_NonEndedGame taggedGameState taggedSquare
 
-        Tagged_EndedGameState _ -> 
-            toDisplaySquare_EndedGame taggedSquare
+        Tagged_EndedGameState x -> 
+            toDisplaySquare_EndedGame x taggedSquare
 
 
 toDisplaySquare_NonEndedGame :: Tagged_GameState -> B.Tagged_Square -> Tagged_DisplaySquare
@@ -139,8 +140,8 @@ toDisplaySquare_NonEndedGame taggedGameState taggedSquare =
                                 }  
     
 
-toDisplaySquare_EndedGame :: B.Tagged_Square -> Tagged_DisplaySquare
-toDisplaySquare_EndedGame taggedSquare =
+toDisplaySquare_EndedGame :: EndedGameState -> B.Tagged_Square -> Tagged_DisplaySquare
+toDisplaySquare_EndedGame endedGameState taggedSquare =
     case taggedSquare of
         B.Tagged_EmptySquare _ -> -- perhaps possible
             Tagged_Empty_EndedGame_DisplaySquare $ Empty_EndedGame_DisplaySquare 
@@ -148,10 +149,21 @@ toDisplaySquare_EndedGame taggedSquare =
                 }
 
         B.Tagged_FilledSquare x -> 
-            Tagged_Filled_EndedGame_DisplaySquare $ Filled_EndedGame_DisplaySquare
-                { position: B.toPosition taggedSquare
-                , color: B.filledSquareColor x
-                } 
+            let
+                color = B.filledSquareColor x
+            in
+                Tagged_Filled_EndedGame_DisplaySquare $ Filled_EndedGame_DisplaySquare
+                    { position: B.toPosition taggedSquare
+                    , color: color
+                    , mbIsWinningColor: mbIsWinningColor color endedGameState
+                    }
+
+
+mbIsWinningColor :: Color -> EndedGameState -> Maybe Boolean
+mbIsWinningColor color endedGameState =
+    case winner endedGameState of
+        WinColor winColor -> Just $ color == winColor
+        Tie               -> Nothing
 
 
 movesAndOutflanksForFilled :: Position -> List B.Move -> {movePositions :: List Position, outflankPositions :: List Position}
@@ -215,7 +227,7 @@ gameSummaryDisplay x@(EndedGameState rec) =
             NoValidMoves         -> "No more valid moves"
 
         winnerString = case winner x of
-            WinnerColor color -> "Winner is " <> (show color)
-            Tie               -> "TIE game"
+            WinColor color -> "Winner is " <> (show color)
+            Tie            -> "TIE game"
     in 
         "GAME OVER (" <> reasonString <> ") " <> winnerString
