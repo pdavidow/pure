@@ -376,7 +376,7 @@ component =
 
                 H.modify (_ 
                     { gameHistory = history'
-                    --, mb_suggestedMove = mbBestNextMove searchDepth gameState'
+                    , mb_suggestedMove = mbBestNextMove searchDepth gameState'
                     }
                 )
 

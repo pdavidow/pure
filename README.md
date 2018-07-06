@@ -10,6 +10,6 @@ Work in progress
 
 psc-package install
 
-pulp --psc-package build --to app.js
+pulp browserify --to app.js
 
 npx http-server
