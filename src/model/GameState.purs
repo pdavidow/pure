@@ -37,7 +37,7 @@ import Position (isValidPositionRec, makeValidPosition, positionRec)
 import Data.Integral (fromIntegral)
 import Data.GameTree (class Node, Score(..))
 import Math (round)
-
+import Data.GameTree (class Node, Score(..), Plies, Result, bestMove, isTerminalDefault, minmax)
 
 data Core = Core {unusedDiskCounts :: UnusedDiskCounts, board :: Board}
 
@@ -85,12 +85,12 @@ instance nodeTagged_GameState :: Node Tagged_GameState
         case taggedGameState of
             Tagged_StartGameState _ -> false
             Tagged_MidGameState   _ -> false
-            Tagged_EndedGameState   _ -> true
+            Tagged_EndedGameState _ -> true
 
 
     score :: Tagged_GameState -> Score
     score taggedGameState = 
-        Score $ round $ heuristic_score taggedGameState
+        Score $ heuristic_score taggedGameState
 
 
     children :: Tagged_GameState -> List Tagged_GameState
@@ -99,6 +99,7 @@ instance nodeTagged_GameState :: Node Tagged_GameState
             # map (\ move -> applyMoveOnGameState move taggedGameState)
 
 ------------------
+
 
 makeStartGameStateOn :: Board -> StartGameState
 makeStartGameStateOn board =
@@ -429,29 +430,35 @@ heuristic_mobility myColor nextMoves board =
 heuristic_score :: Tagged_GameState -> Number 
 heuristic_score taggedGameState = 
     case taggedGameState of
-        Tagged_StartGameState _  -> 
-            1.0 -- constant whatever
+        Tagged_StartGameState (StartGameState rec)  -> 
+            0.0          
 
         Tagged_MidGameState midState -> 
             let
                 nextMoveColor = nextMoveColor_FromMidGameState midState
                 nextMoves = nextMoves_FromTaggedGameState taggedGameState
-                board = board_FromTaggedGameState taggedGameState
+                board = board_FromTaggedGameState taggedGameState                
+                score = 
+                    (10.0 * heuristic_pieceDifference nextMoveColor board) + 
+                        (801.724 * heuristic_cornerOccupancy nextMoveColor board) + 
+                            (382.026 * heuristic_cornerCloseness nextMoveColor board) + 
+                                (78.922 * heuristic_mobility nextMoveColor nextMoves board) + 
+                                    (74.396 * heuristic_frontierDisks nextMoveColor board) + 
+                                        (10.0 * heuristic_diskSquares nextMoveColor board)                        
             in
-                (10.0 * heuristic_pieceDifference nextMoveColor board) + 
-                    (801.724 * heuristic_cornerOccupancy nextMoveColor board) + 
-                        (382.026 * heuristic_cornerCloseness nextMoveColor board) + 
-                            (78.922 * heuristic_mobility nextMoveColor nextMoves board) + 
-                                (74.396 * heuristic_frontierDisks nextMoveColor board) + 
-                                    (10.0 * heuristic_diskSquares nextMoveColor board)                        
+                case nextMoveColor of
+                    Black -> score
+                    White -> negate score  
 
         Tagged_EndedGameState x@(EndedGameState rec) -> 
             let
-                color = moveColor rec.priorMove 
+                finalMoveColor = toggleColor $ moveColor rec.priorMove 
                 board = board_FromTaggedGameState $ Tagged_EndedGameState x
+                score = heuristic_pieceDifference finalMoveColor board
             in
-                heuristic_pieceDifference (toggleColor color) board
-
+                case finalMoveColor of
+                    Black -> score
+                    White -> negate score 
 
 ---------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------            

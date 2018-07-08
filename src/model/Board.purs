@@ -31,7 +31,6 @@ module Board
     , diskFrom
     , outflankPositions
     , outflankPositions_Traversing
-    , dummyMove
     --, flipAt -- Should NOT be exposed (but ok to temp expose for sake of commented-out test)
     )
     where
@@ -441,18 +440,6 @@ applyBoardMove (Move rec) board =
         board
             # place disk taggedSquare
             # flipOutflanks        
-
-
-dummyMove :: Move   
-dummyMove =
-    Move 
-        { color: Black
-        , emptySquare: EmptySquare 
-            { position: makeValidPosition {x:1, y:1}
-            , radiatingPositionRows: Nil
-            }
-        , outflanks: Nil
-        } 
     
 
 corners_BlackWhite :: Board -> BlackWhite (List FilledSquare)

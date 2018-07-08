@@ -1,4 +1,4 @@
-# The Game of Othello
+# The Game of Reversi (Othello)
 
 Rules: http://www.boardgamecapital.com/game_rules/othello.pdf
 
@@ -7,6 +7,9 @@ Rules: http://www.boardgamecapital.com/game_rules/othello.pdf
 Work in progress
 
 --------------------------------
+
+(Using PureScript v0.11.7)
+
 
 psc-package install
 

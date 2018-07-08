@@ -6,12 +6,11 @@ module Search
     where
       
 import Prelude
-import Board (Move, dummyMove)
+import Board (Move)
 import Data.Maybe (Maybe(..))
 import GameState (MidGameState(..), EndedGameState(..), Tagged_GameState(..))
-import Data.GameTree (bestMove, minmax)
-
-
+import Data.GameTree (bestMove, alphaBeta, minmax)  
+ 
 data SearchDepth 
     = SearchDepth_1
     | SearchDepth_2
@@ -52,16 +51,8 @@ mbBestNextMove searchDepth taggedGameState =
             Nothing -- should never get here
 
         _ -> 
-            case bestMove (minmax $ depthLevel searchDepth) taggedGameState of
-                Nothing                                       -> Nothing
-                Just (Tagged_StartGameState _)                -> Nothing -- should never get here
-                Just (Tagged_MidGameState (MidGameState rec)) -> Just rec.priorMove
+            case bestMove (alphaBeta $ depthLevel searchDepth) taggedGameState of
+                Nothing                                           -> Nothing
+                Just (Tagged_StartGameState _)                    -> Nothing -- should never get here
+                Just (Tagged_MidGameState (MidGameState rec))     -> Just rec.priorMove
                 Just (Tagged_EndedGameState (EndedGameState rec)) -> Just rec.priorMove
-
-
--- todo unused?
-bestNextMove :: SearchDepth -> Tagged_GameState -> Move
-bestNextMove searchDepth taggedGameState =
-    case mbBestNextMove searchDepth taggedGameState of
-        Nothing   -> dummyMove
-        Just move -> move

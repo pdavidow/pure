@@ -18,7 +18,7 @@ import Data.List (List(Nil), elem)
 import Data.List.NonEmpty as NE
 import Data.Maybe (Maybe(..), fromJust, isJust)
 import Disk (Color(..), toggleColor)
-import Display (Move_DisplaySquare(..), FilledSelf_DisplaySquare(..), FilledOpponent_DisplaySquare(..), Empty_EndedGame_DisplaySquare(..), Filled_EndedGame_DisplaySquare(..), Tagged_DisplaySquare(..), toDisplaySquare, toPosition, status)
+import Display (Move_DisplaySquare(..), FilledSelf_DisplaySquare(..), FilledOpponent_DisplaySquare(..), Empty_EndedGame_DisplaySquare(..), Filled_EndedGame_DisplaySquare(..), Tagged_DisplaySquare(..), toDisplaySquare, toPosition, squaresColoredCountsStatus, status)  
 import DisplayConstants as DC
 import GameHistory (GameHistory, applyMoveOnHistory, makeHistory, undoHistoryOnce)
 import GameState (NextMoves, Tagged_GameState, board_FromTaggedGameState, nextMoves_FromTaggedGameState, mbNextMoveColor_FromTaggedGameState, unusedDiskCounts_FromTaggedGameState)
@@ -69,18 +69,21 @@ component =
         }
     where
  
-
     initialState :: State 
     initialState =
-        { gameHistory: makeHistory
+        { gameHistory: gameHistory
         , mb_focused_MoveSquare: Nothing
         , mb_mouseDown_MoveSquare: Nothing
         , outflanks_FocusedMoveSquare: Nil
         , moves_FocusedFilledOpponentSquare: Nil        
         , outflanks_FocusedFilledOpponentSquare: Nil
-        , searchDepth: defaultSearchDepth
-        , mb_suggestedMove: Nothing
+        , searchDepth: searchDepth
+        , mb_suggestedMove: mb_suggestedMove
         }
+        where
+        gameHistory = makeHistory
+        searchDepth = defaultSearchDepth
+        mb_suggestedMove = mbBestNextMove searchDepth $ gameStateOn gameHistory
   
 
     isUndoable :: GameHistory -> Boolean
@@ -134,7 +137,11 @@ component =
                 ]
                 [ HH.text "Undo" ] 
             , HH.div
-                [ HP.classes [ HH.ClassName "mt4 ml4 f3 lh-copy b" ]
+                [ HP.classes [ HH.ClassName "mt4 ml4 f3 lh-copy" ]
+                ]
+                [ HH.text $ "Placed-Disk counts: " <> squaresColoredCountsStatus gameState ]                  
+            , HH.div
+                [ HP.classes [ HH.ClassName "mt2 ml4 f3 lh-copy b" ]
                 ]
                 [ HH.text $ "STATUS: " <> status gameState ]                 
             ]
@@ -396,7 +403,7 @@ component =
                 { outflanks_FocusedFilledOpponentSquare = rec.outflanks
                 , moves_FocusedFilledOpponentSquare = rec.moves
                 }
-            )
+            )            
             pure next
 
         MouseLeave_FilledOpponentSquare next -> do

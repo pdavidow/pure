@@ -8,6 +8,7 @@ module Display
     , Tagged_DisplaySquare(..)
     , toDisplaySquare
     , toPosition
+    , squaresColoredCountsStatus
     , status
     )
     where
@@ -19,7 +20,7 @@ import Data.Lazy (Lazy, defer, force)
 import Data.List (List, concatMap, elem, filter, find, nub)
 import Data.Maybe (Maybe(..), fromJust)
 import Disk (Color, toggleColor)
-import GameState (MidGameState(..), EndedGameState(..), Tagged_GameState(..), EndStatus(..), MidStatus(..), Winner(..), mbNextMoveColor_FromTaggedGameState, nextMoves_FromTaggedGameState, winner)
+import GameState (MidGameState(..), EndedGameState(..), Tagged_GameState(..), EndStatus(..), MidStatus(..), Winner(..), board_FromTaggedGameState, mbNextMoveColor_FromTaggedGameState, nextMoves_FromTaggedGameState, winner)
 import Partial.Unsafe (unsafePartial)
 import Position (Position)
 import Type.Data.Boolean (kind Boolean)
@@ -192,7 +193,7 @@ status taggedGameState =
         lzNextMoveColor = defer $ \ _ -> unsafePartial fromJust $ mbNextMoveColor_FromTaggedGameState taggedGameState
 
         lzNextMoveColorStatusOn :: Color -> Lazy String
-        lzNextMoveColorStatusOn color = defer $ \ _ -> (show color) <> " to move next"
+        lzNextMoveColorStatusOn color = defer $ \ _ -> (show color) <> " to move"
 
         lzNextMoveColorStatus :: Lazy String
         lzNextMoveColorStatus = defer $ \ _ -> force $ lzNextMoveColorStatusOn $ force lzNextMoveColor
@@ -217,6 +218,13 @@ status taggedGameState =
 
             Tagged_EndedGameState x -> 
                 gameSummaryDisplay x
+
+
+squaresColoredCountsStatus :: Tagged_GameState -> String
+squaresColoredCountsStatus taggedGameState =
+    board_FromTaggedGameState taggedGameState
+        # B.squaresColoredCounts_BlackWhite
+        # show 
 
 
 gameSummaryDisplay :: EndedGameState -> String
