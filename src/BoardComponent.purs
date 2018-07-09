@@ -29,9 +29,8 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Lib (setCssProp, haskellRange)
 import Partial.Unsafe (unsafePartial)
-import Player (Player(..), PlayerType(..), Players, mbSuggestedMove)
+import Player (Players, mbSuggestedMove)
 import Position (Position)
-import Search (SearchDepth, mbBestNextMove)
 import Type.Data.Boolean (kind Boolean)
 import UnusedDiskCount (UnusedDiskCounts, maxDiskCount)
 

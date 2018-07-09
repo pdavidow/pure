@@ -27,18 +27,19 @@ module GameState
     )
     where
       
-import Prelude      
-import UnusedDiskCount (UnusedDiskCounts, makeUnusedDiskCounts, transferDiskTo, decreaseByOneFor)
-import Data.List (List(..), concatMap, filter, fromFoldable, length, mapMaybe, null, zip)
-import Board ( Board, Move, Tagged_Square(..), applyBoardMove, boardArrayAt, initialBoard, squaresColoredCounts_BlackWhite, toPosition, validMoves, moveColor, boardAt, filledSquares, toFilledSquare, isSquareColored, isEmptyAt, boardSquaresColored, cornerCounts_BlackWhite, filledSquaresAdjacentToEmptyCorners ) 
-import Disk (Color(..), toggleColor)
+import Prelude
+
 import BlackWhite (BlackWhite(..))
+import Board (Board, Move, Tagged_Square(..), applyBoardMove, boardArrayAt, initialBoard, squaresColoredCounts_BlackWhite, toPosition, validMoves, moveColor, boardAt, filledSquares, toFilledSquare, isSquareColored, isEmptyAt, boardSquaresColored, cornerCounts_BlackWhite, filledSquaresAdjacentToEmptyCorners)
+import Data.GameTree (class Node, Score(..))
+import Data.Integral (fromIntegral)
+import Data.List (List(..), concatMap, filter, fromFoldable, length, mapMaybe, null, zip)
 import Data.Maybe (Maybe(..))
 import Data.Traversable (sum)
 import Data.Tuple (Tuple(..))
+import Disk (Color(..), toggleColor)
 import Position (isValidPositionRec, makeValidPosition, positionRec)
-import Data.Integral (fromIntegral)
-import Data.GameTree (class Node, Score(..))
+import UnusedDiskCount (UnusedDiskCounts, makeUnusedDiskCounts, transferDiskTo, decreaseByOneFor)
 
 data Core = Core {unusedDiskCounts :: UnusedDiskCounts, board :: Board, currentPlayerColorForSearch :: Color}
 
@@ -345,15 +346,10 @@ heuristic_Score taggedGameState =
                                     (74.396 * heuristic_FrontierDisks nextMoveColor board) + 
                                         (10.0 * heuristic_DiskSquares nextMoveColor board)                        
             in
-                case coreRec.currentPlayerColorForSearch of -- todo elegantize
-                    Black ->
-                        case nextMoveColor of
-                            Black -> score
-                            White -> negate score  
-                    White ->
-                        case nextMoveColor of
-                            Black -> negate score
-                            White -> score 
+                if (nextMoveColor == coreRec.currentPlayerColorForSearch) then
+                    score
+                else
+                    negate score 
 
         Tagged_EndedGameState x@(EndedGameState rec) -> 
             let
@@ -362,15 +358,10 @@ heuristic_Score taggedGameState =
                 (Core coreRec) = core_FromTaggedGameState taggedGameState 
                 score = heuristic_PieceDifference finalMoveColor board
             in
-                case coreRec.currentPlayerColorForSearch of -- todo elegantize
-                    Black ->
-                        case finalMoveColor of
-                            Black -> score
-                            White -> negate score  
-                    White ->
-                        case finalMoveColor of
-                            Black -> negate score
-                            White -> score 
+                if (finalMoveColor == coreRec.currentPlayerColorForSearch) then
+                    score
+                else
+                    negate score
     where
 
     heuristic_PieceDifference :: Color -> Board -> Number 
