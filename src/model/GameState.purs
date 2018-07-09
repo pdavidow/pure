@@ -384,7 +384,7 @@ heuristic_Score taggedGameState =
             else
                 0.0
 
-
+ 
     heuristic_FrontierDisks :: Color -> Board -> Number 
     heuristic_FrontierDisks myColor board = 
         let
@@ -397,7 +397,7 @@ heuristic_Score taggedGameState =
                             ys = fromFoldable $ map (j + _) [ 0,  1,  1,  1,  0, -1, -1, -1]
                         in
                             zip xs ys
-                                # map (\ (Tuple i j) -> {x: i, y: j})
+                                # map (\ (Tuple i' j') -> {x: i', y: j'})
                                 # filter (\ rec' -> isValidPositionRec rec' && (isEmptyAt (makeValidPosition rec') board))
                                 # mapMaybe (\ _ -> toFilledSquare $ boardAt board $ makeValidPosition rec)
                     )

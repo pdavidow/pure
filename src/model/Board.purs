@@ -37,8 +37,8 @@ module Board
       
 import Prelude
 import BoardSize (boardSize)
-import Data.Array as Array
-import Data.List (List(..), elem, nub, null, any, concatMap, filter, foldl, fromFoldable, head, tail, takeWhile, length, mapMaybe, range, zipWith)
+import Data.Array as Array 
+import Data.List (List, elem, nub, null, any, concatMap, filter, foldl, fromFoldable, head, tail, takeWhile, length, mapMaybe, range, zipWith)
 import Data.Maybe (Maybe(..), fromJust)
 import Data.Tuple (Tuple(..))
 import Disk (Disk, Color(..), diskColor, flipDisk, makeDisk, toggleColor)
