@@ -487,12 +487,14 @@ main = runTest do
             
         test "Black uses very last disk on first move (contrived)" do      
             let 
-                startGameState@(StartGameState {color: c, nextMoves: n, core: (Core {unusedDiskCounts: unusedDiskCounts, board: board})}) = makeStartGameState
+                startGameState@(StartGameState {color: c, nextMoves: n, core: (Core coreRec)}) = makeStartGameState
+                unusedDiskCounts = coreRec.unusedDiskCounts
+                board = coreRec.board
                 (BlackWhite {black: bc, white: wc}) = unusedDiskCounts_FromTaggedGameState $ Tagged_StartGameState startGameState
                 unusedDiskCounts'  = unsafePartial $ fromJust $ LZ.index (LZ.iterate (decreaseByOneFor Black) unusedDiskCounts) $ bc - 1
                 unusedDiskCounts'' = unsafePartial $ fromJust $ LZ.index (LZ.iterate (decreaseByOneFor White) unusedDiskCounts') $ wc
 
-                taggedGameState1 = Tagged_StartGameState $ StartGameState {color: c, nextMoves: n, core: (Core {unusedDiskCounts: unusedDiskCounts'', board: board})}
+                taggedGameState1 = Tagged_StartGameState $ StartGameState {color: c, nextMoves: n, core: (Core $ coreRec {unusedDiskCounts = unusedDiskCounts'', board = board})}
                 history1 = unsafePartial $ fromJust $ NE.fromList $ taggedGameState1 : Nil
                 moves1 = nextMoves_FromTaggedGameState taggedGameState1
                 move1 = unsafePartial $ fromJust $ head moves1
@@ -529,11 +531,13 @@ main = runTest do
 
         test "White with no disks for his first move, is given one by Black (contrived)" do
             let 
-                startGameState@(StartGameState {color: c, nextMoves: n, core: (Core {unusedDiskCounts: unusedDiskCounts, board: board})}) = makeStartGameState
+                startGameState@(StartGameState {color: c, nextMoves: n, core: (Core coreRec)}) = makeStartGameState
+                unusedDiskCounts = coreRec.unusedDiskCounts
+                board = coreRec.board
                 (BlackWhite {black: bc, white: wc}) = unusedDiskCounts_FromTaggedGameState $ Tagged_StartGameState startGameState
                 unusedDiskCounts'  = unsafePartial $ fromJust $ LZ.index (LZ.iterate (decreaseByOneFor White) unusedDiskCounts) wc 
 
-                taggedGameState1 = Tagged_StartGameState $ StartGameState {color: c, nextMoves: n, core: (Core {unusedDiskCounts: unusedDiskCounts', board: board})}
+                taggedGameState1 = Tagged_StartGameState $ StartGameState {color: c, nextMoves: n, core: (Core $ coreRec {unusedDiskCounts = unusedDiskCounts', board = board})}
                 history1 = unsafePartial $ fromJust $ NE.fromList $ taggedGameState1 : Nil
                 moves1 = nextMoves_FromTaggedGameState taggedGameState1
                 move1 = unsafePartial $ fromJust $ head moves1
@@ -580,11 +584,13 @@ main = runTest do
 
         test "NoAvailableDisk (contrived)" do
             let 
-                startGameState@(StartGameState {color: c, nextMoves: n, core: (Core {unusedDiskCounts: unusedDiskCounts, board: board})}) = makeStartGameState
+                startGameState@(StartGameState {color: c, nextMoves: n, core: (Core coreRec)}) = makeStartGameState
+                unusedDiskCounts = coreRec.unusedDiskCounts
+                board = coreRec.board                
                 (BlackWhite {black: bc, white: wc}) = unusedDiskCounts_FromTaggedGameState $ Tagged_StartGameState startGameState
                 unusedDiskCounts' = unsafePartial $ fromJust $ LZ.index (LZ.iterate (decreaseByOneFor Black) unusedDiskCounts) bc 
 
-                taggedGameState1 = Tagged_StartGameState $ StartGameState {color: c, nextMoves: n, core: (Core {unusedDiskCounts: unusedDiskCounts', board: board})}
+                taggedGameState1 = Tagged_StartGameState $ StartGameState {color: c, nextMoves: n, core: (Core $ coreRec {unusedDiskCounts = unusedDiskCounts', board = board})}
                 history1 = unsafePartial $ fromJust $ NE.fromList $ taggedGameState1 : Nil
                 moves = nextMoves_FromTaggedGameState taggedGameState1
                 -- Black on first move is confronted with no available disks
@@ -615,12 +621,14 @@ main = runTest do
         test "WrongColor, NoAvailableDisk, NotOutflanking (contrived)" do
             let 
                 board' = boardCustom4
-                startGameState@(StartGameState {color: c, nextMoves: n, core: (Core {unusedDiskCounts: unusedDiskCounts, board: board})}) = makeStartGameState
+                startGameState@(StartGameState {color: c, nextMoves: n, core: (Core coreRec)}) = makeStartGameState
+                unusedDiskCounts = coreRec.unusedDiskCounts
+                board = coreRec.board                
                 (BlackWhite {black: bc, white: wc}) = unusedDiskCounts_FromTaggedGameState $ Tagged_StartGameState startGameState
                 unusedDiskCounts' = unsafePartial $ fromJust $ LZ.index (LZ.iterate (decreaseByOneFor Black) unusedDiskCounts) bc 
                 unusedDiskCounts'' = unsafePartial $ fromJust $ LZ.index (LZ.iterate (decreaseByOneFor White) unusedDiskCounts') wc 
 
-                taggedGameState1 = Tagged_StartGameState $ StartGameState {color: c, nextMoves: (nextMovesFrom c board'), core: (Core {unusedDiskCounts: unusedDiskCounts'', board: board'})}
+                taggedGameState1 = Tagged_StartGameState $ StartGameState {color: c, nextMoves: (nextMovesFrom c board'), core: (Core $ coreRec {unusedDiskCounts = unusedDiskCounts'', board = board'})}
                 history1 = unsafePartial $ fromJust $ NE.fromList $ taggedGameState1 : Nil
                 move = Move
                     { color: White

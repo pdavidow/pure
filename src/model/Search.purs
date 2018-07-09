@@ -1,16 +1,22 @@
 module Search
-    ( SearchDepth(..)
+    ( Strategy(..)
+    , SearchDepth(..)
     , mbBestNextMove
-    , defaultSearchDepth
     )
     where
       
 import Prelude
+
 import Board (Move)
+import Data.GameTree (bestMove, alphaBeta)
 import Data.Maybe (Maybe(..))
 import GameState (MidGameState(..), EndedGameState(..), Tagged_GameState(..))
-import Data.GameTree (bestMove, alphaBeta, minmax)  
- 
+
+
+data Strategy 
+    = RandomPick
+    | SearchDepth SearchDepth
+
 data SearchDepth 
     = SearchDepth_1
     | SearchDepth_2
@@ -24,9 +30,8 @@ data SearchDepth
     | SearchDepth_10
 
 
-defaultSearchDepth :: SearchDepth
-defaultSearchDepth =
-    SearchDepth_3
+derive instance eqStrategy :: Eq Strategy
+derive instance eqSearchDepth :: Eq SearchDepth
 
 
 depthLevel :: SearchDepth -> Int

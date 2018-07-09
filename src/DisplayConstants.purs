@@ -150,29 +150,4 @@ unusedDisk_White =
     unusedDisk <> " bg-white " 
 
 
-potentialDiskClassesForColor :: Color -> String
-potentialDiskClassesForColor color =
-    case color of
-        Black -> potentialDisk_Black 
-        White -> potentialDisk_White
-
-
-flipDiskClassesForColor :: Color -> String
-flipDiskClassesForColor color =
-    case color of
-        Black -> flipDisk_Black  
-        White -> flipDisk_White
-
-
-placedDiskClassesForColor :: Color -> String
-placedDiskClassesForColor color =
-    case color of
-        Black -> placedDisk_Black
-        White -> placedDisk_White        
-
-
-unusedDiskClassesForColor :: Color -> String
-unusedDiskClassesForColor color =
-    case color of
-        Black -> unusedDisk_Black
-        White -> unusedDisk_White           
+             

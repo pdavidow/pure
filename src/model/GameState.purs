@@ -11,6 +11,8 @@ module GameState
     , makeStartGameState
     , board_FromTaggedGameState
     , core_FromTaggedGameState
+    , nextMoveColor_FromStartGameState
+    , nextMoveColor_FromMidGameState
     , mbNextMoveColor_FromTaggedGameState
     , nextMoves_FromTaggedGameState
     , unusedDiskCounts_FromTaggedGameState
@@ -20,6 +22,7 @@ module GameState
     , isZeroUnusedDiskCount
     , isForfeitTurn
     , winner
+    , swapCore
     , makeStartGameStateOn -- todo only used in testing
     )
     where
@@ -36,10 +39,8 @@ import Data.Tuple (Tuple(..))
 import Position (isValidPositionRec, makeValidPosition, positionRec)
 import Data.Integral (fromIntegral)
 import Data.GameTree (class Node, Score(..))
-import Math (round)
-import Data.GameTree (class Node, Score(..), Plies, Result, bestMove, isTerminalDefault, minmax)
 
-data Core = Core {unusedDiskCounts :: UnusedDiskCounts, board :: Board}
+data Core = Core {unusedDiskCounts :: UnusedDiskCounts, board :: Board, currentPlayerColorForSearch :: Color}
 
 data StartGameState = StartGameState {color :: Color, nextMoves :: NextMoves, core :: Core}
 
@@ -90,7 +91,7 @@ instance nodeTagged_GameState :: Node Tagged_GameState
 
     score :: Tagged_GameState -> Score
     score taggedGameState = 
-        Score $ heuristic_score taggedGameState
+        Score $ heuristic_Score taggedGameState
 
 
     children :: Tagged_GameState -> List Tagged_GameState
@@ -109,6 +110,7 @@ makeStartGameStateOn board =
         , core: Core 
             { unusedDiskCounts: makeUnusedDiskCounts
             , board: board
+            , currentPlayerColorForSearch: color
             }
         } 
         where color = Black -- Rule 1: Black always moves first 
@@ -140,10 +142,10 @@ applyMoveOnGameState move taggedGameState =
         makeMidGameState :: MidGameState
         makeMidGameState =
             let
-                (Core {unusedDiskCounts: unusedDiskCounts, board: board}) = core_FromTaggedGameState taggedGameState
+                (Core coreRec) = core_FromTaggedGameState taggedGameState
                 color = moveColor move
-                unusedDiskCounts' = decreaseByOneFor color unusedDiskCounts
-                board' = applyBoardMove move board
+                unusedDiskCounts' = decreaseByOneFor color coreRec.unusedDiskCounts
+                board' = applyBoardMove move coreRec.board
             in
                 MidGameState 
                     { priorMove: move
@@ -152,6 +154,7 @@ applyMoveOnGameState move taggedGameState =
                     , core: Core 
                         { unusedDiskCounts: unusedDiskCounts'
                         , board: board'
+                        , currentPlayerColorForSearch: coreRec.currentPlayerColorForSearch
                         }
                     }
     in
@@ -162,8 +165,11 @@ applyMoveOnGameState move taggedGameState =
 
 
 processMidGameState :: MidGameState -> Tagged_GameState
-processMidGameState midGameState@(MidGameState {priorMove: priorMove, status: _, nextMoves: nextMoves, core: core@(Core {unusedDiskCounts: unusedDiskCounts, board: board})}) =
+processMidGameState midGameState@(MidGameState {priorMove: priorMove, status: _, nextMoves: nextMoves, core: core@(Core coreRec)}) =
     let
+        unusedDiskCounts = coreRec.unusedDiskCounts
+        board = coreRec.board
+
         priorColor = moveColor priorMove
         nextColor = toggleColor priorColor
 
@@ -186,7 +192,7 @@ processMidGameState midGameState@(MidGameState {priorMove: priorMove, status: _,
 
         transferDisk :: Tagged_GameState
         transferDisk = 
-            Tagged_MidGameState $ MidGameState {priorMove: priorMove, status: TransferDisk_Rule9, nextMoves: nextMoves, core: Core {unusedDiskCounts: unusedDiskCounts', board: board}}
+            Tagged_MidGameState $ MidGameState {priorMove: priorMove, status: TransferDisk_Rule9, nextMoves: nextMoves, core: Core {unusedDiskCounts: unusedDiskCounts', board: board, currentPlayerColorForSearch: coreRec.currentPlayerColorForSearch}}
                 where unusedDiskCounts' = transferDiskTo nextColor unusedDiskCounts
 
         passThru :: Tagged_GameState
@@ -236,10 +242,15 @@ colorResultingInTaggedGameState taggedGameState =
 mbNextMoveColor_FromTaggedGameState :: Tagged_GameState -> Maybe Color
 mbNextMoveColor_FromTaggedGameState taggedGameState =  
     case taggedGameState of
-        Tagged_StartGameState (StartGameState rec) -> Just rec.color
-        Tagged_MidGameState midGameState -> Just $ nextMoveColor_FromMidGameState midGameState
+        Tagged_StartGameState x -> Just $ nextMoveColor_FromStartGameState x
+        Tagged_MidGameState x -> Just $ nextMoveColor_FromMidGameState x
         Tagged_EndedGameState _ -> Nothing        
-        
+
+
+nextMoveColor_FromStartGameState :: StartGameState -> Color
+nextMoveColor_FromStartGameState (StartGameState rec) = 
+    rec.color
+
 
 nextMoveColor_FromMidGameState :: MidGameState -> Color
 nextMoveColor_FromMidGameState (MidGameState rec) =  
@@ -295,170 +306,188 @@ winner x =
         else
             Tie
 
----------------------------------------------------------------------------------------------
----------------------------------------------------------------------------------------------
--- Ideally should be in separate 'Heuristic' module, but that causes circular dependencies
----------------------------------------------------------------------------------------------
 
--- Assume: boardSize == 8
-
--- https://kartikkukreja.wordpress.com/2013/03/30/heuristic-function-for-reversiothello/
-
--- https://courses.cs.washington.edu/courses/cse573/04au/Project/mini1/RUSSIA/Final_Paper.pdf
-    -- MaxPlayer to move next (section 4.1)
-
-heuristic_pieceDifference :: Color -> Board -> Number 
-heuristic_pieceDifference myColor board = 
-    let
-        (BlackWhite {black: b, white: w}) = squaresColoredCounts_BlackWhite board
-
-        ( Tuple myCount opCount ) = 
-            if myColor == Black then
-                Tuple b w
-            else
-                Tuple w b
-
-        total = myCount + opCount
-    in
-        if myCount > opCount then
-            (fromIntegral (100 * myCount) / fromIntegral total)
-        else if myCount < opCount then
-            (fromIntegral (-100 * opCount) / fromIntegral total)
-        else
-            0.0
-
-
-heuristic_frontierDisks :: Color -> Board -> Number 
-heuristic_frontierDisks myColor board = 
-    let
-        filledSquares' = filledSquares board
-            # map (positionRec <<< toPosition <<< Tagged_FilledSquare)
-            # concatMap 
-                ( \ rec@({x: i, y: j}) -> 
-                    let
-                        xs = fromFoldable $ map (i + _) [-1, -1,  0,  1,  1,  1,  0, -1] 
-                        ys = fromFoldable $ map (j + _) [ 0,  1,  1,  1,  0, -1, -1, -1]
-                    in
-                        zip xs ys
-                            # map (\ (Tuple i j) -> {x: i, y: j})
-                            # filter (\ rec' -> isValidPositionRec rec' && (isEmptyAt (makeValidPosition rec') board))
-                            # mapMaybe (\ _ -> toFilledSquare $ boardAt board $ makeValidPosition rec)
-                )
-
-        count = \ color -> length $ filter (isSquareColored color) filledSquares'
-
-        myCount = count myColor
-        opCount = count $ toggleColor myColor
-
-        total = myCount + opCount
-    in
-        if myCount > opCount then
-            fromIntegral (-100 * myCount) / fromIntegral total
-        else if myCount < opCount then
-            fromIntegral (100 * opCount) / fromIntegral total
-        else
-            0.0
-
-
-heuristic_diskSquares :: Color -> Board -> Number 
-heuristic_diskSquares myColor board = 
-    let
-        v = 
-            [ [ 20, -3, 11,  8,  8, 11, -3, 20 ]
-            , [ -3, -7, -4,  1,  1, -4, -7, -3 ]
-            , [ 11, -4,  2,  2,  2,  2, -4, 11 ]
-            , [  8,  1,  2, -3, -3,  2,  1,  8 ]
-            , [  8,  1,  2, -3, -3,  2,  1,  8 ]
-            , [ 11, -4,  2,  2,  2,  2, -4, 11 ]
-            , [ -3, -7, -4,  1,  1, -4, -7, -3 ]
-            , [ 20, -3, 11,  8,  8, 11, -3, 20 ]
-            ]
-
-        weight = \ color ->
-            boardSquaresColored color board
-                # map (boardArrayAt v <<< positionRec <<< toPosition <<< Tagged_FilledSquare)
-                # sum
-                
-        myWeight = weight myColor
-        opWeight = weight $ toggleColor myColor
-    in
-        fromIntegral (myWeight - opWeight)
-
-
-heuristic_cornerOccupancy :: Color -> Board -> Number 
-heuristic_cornerOccupancy myColor board = 
-    let       
-        (BlackWhite {black: b, white: w}) = cornerCounts_BlackWhite board
-
-        ( Tuple myCornerCount oppCornerCount ) =
-            if myColor == Black then Tuple b w
-            else Tuple w b
-    in
-        fromIntegral $ 25 * (myCornerCount - oppCornerCount)
-
-
-heuristic_cornerCloseness :: Color -> Board -> Number 
-heuristic_cornerCloseness myColor board = 
-    let
-        xs = filledSquaresAdjacentToEmptyCorners board
-        count = \ color -> length $ filter (isSquareColored color) xs
-
-        myCount = count myColor
-        opCount = count $ toggleColor myColor
-    in
-        -12.5 * fromIntegral (myCount - opCount)
-
-
-heuristic_mobility :: Color -> NextMoves -> Board -> Number 
-heuristic_mobility myColor nextMoves board = 
-    let
-        opColor = toggleColor myColor
-
-        myMoveCount = length nextMoves
-        oppMoveCount = length $ validMoves opColor board
-
-        total = myMoveCount + oppMoveCount
-    in
-        if myMoveCount > oppMoveCount then
-            fromIntegral (100 *  myMoveCount) / fromIntegral total
-        else if myMoveCount < oppMoveCount then
-            fromIntegral (-100 * oppMoveCount) / fromIntegral total
-        else
-            0.0
-
-
-heuristic_score :: Tagged_GameState -> Number 
-heuristic_score taggedGameState = 
+swapCore :: Tagged_GameState -> Core -> Tagged_GameState
+swapCore taggedGameState core =
     case taggedGameState of
-        Tagged_StartGameState (StartGameState rec)  -> 
+        Tagged_StartGameState (StartGameState rec) -> 
+            Tagged_StartGameState $ StartGameState $ rec {core = core}
+
+        Tagged_MidGameState (MidGameState rec) -> 
+            Tagged_MidGameState $ MidGameState $ rec {core = core}
+
+        Tagged_EndedGameState (EndedGameState rec) -> 
+            Tagged_EndedGameState $ EndedGameState $ rec {core = core}
+
+
+
+heuristic_Score :: Tagged_GameState -> Number 
+heuristic_Score taggedGameState = 
+    -- https://kartikkukreja.wordpress.com/2013/03/30/heuristic-function-for-reversiothello/
+    -- Assume: boardSize == 8
+    -- Negamax formulation
+
+    case taggedGameState of
+        Tagged_StartGameState _  -> 
             0.0          
 
-        Tagged_MidGameState midState -> 
+        Tagged_MidGameState x -> 
             let
-                nextMoveColor = nextMoveColor_FromMidGameState midState
+                nextMoveColor = nextMoveColor_FromMidGameState x
                 nextMoves = nextMoves_FromTaggedGameState taggedGameState
-                board = board_FromTaggedGameState taggedGameState                
+                board = board_FromTaggedGameState taggedGameState   
+                (Core coreRec) = core_FromTaggedGameState taggedGameState             
                 score = 
-                    (10.0 * heuristic_pieceDifference nextMoveColor board) + 
-                        (801.724 * heuristic_cornerOccupancy nextMoveColor board) + 
-                            (382.026 * heuristic_cornerCloseness nextMoveColor board) + 
-                                (78.922 * heuristic_mobility nextMoveColor nextMoves board) + 
-                                    (74.396 * heuristic_frontierDisks nextMoveColor board) + 
-                                        (10.0 * heuristic_diskSquares nextMoveColor board)                        
+                    (10.0 * heuristic_PieceDifference nextMoveColor board) + 
+                        (801.724 * heuristic_CornerOccupancy nextMoveColor board) + 
+                            (382.026 * heuristic_CornerCloseness nextMoveColor board) + 
+                                (78.922 * heuristic_Mobility nextMoveColor nextMoves board) + 
+                                    (74.396 * heuristic_FrontierDisks nextMoveColor board) + 
+                                        (10.0 * heuristic_DiskSquares nextMoveColor board)                        
             in
-                case nextMoveColor of
-                    Black -> score
-                    White -> negate score  
+                case coreRec.currentPlayerColorForSearch of -- todo elegantize
+                    Black ->
+                        case nextMoveColor of
+                            Black -> score
+                            White -> negate score  
+                    White ->
+                        case nextMoveColor of
+                            Black -> negate score
+                            White -> score 
 
         Tagged_EndedGameState x@(EndedGameState rec) -> 
             let
                 finalMoveColor = toggleColor $ moveColor rec.priorMove 
                 board = board_FromTaggedGameState $ Tagged_EndedGameState x
-                score = heuristic_pieceDifference finalMoveColor board
+                (Core coreRec) = core_FromTaggedGameState taggedGameState 
+                score = heuristic_PieceDifference finalMoveColor board
             in
-                case finalMoveColor of
-                    Black -> score
-                    White -> negate score 
+                case coreRec.currentPlayerColorForSearch of -- todo elegantize
+                    Black ->
+                        case finalMoveColor of
+                            Black -> score
+                            White -> negate score  
+                    White ->
+                        case finalMoveColor of
+                            Black -> negate score
+                            White -> score 
+    where
 
----------------------------------------------------------------------------------------------
----------------------------------------------------------------------------------------------            
+    heuristic_PieceDifference :: Color -> Board -> Number 
+    heuristic_PieceDifference myColor board = 
+        let
+            (BlackWhite {black: b, white: w}) = squaresColoredCounts_BlackWhite board
+
+            ( Tuple myCount opCount ) = 
+                if myColor == Black then
+                    Tuple b w
+                else
+                    Tuple w b
+
+            total = myCount + opCount
+        in
+            if myCount > opCount then
+                (fromIntegral (100 * myCount) / fromIntegral total)
+            else if myCount < opCount then
+                (fromIntegral (-100 * opCount) / fromIntegral total)
+            else
+                0.0
+
+
+    heuristic_FrontierDisks :: Color -> Board -> Number 
+    heuristic_FrontierDisks myColor board = 
+        let
+            filledSquares' = filledSquares board
+                # map (positionRec <<< toPosition <<< Tagged_FilledSquare)
+                # concatMap 
+                    ( \ rec@({x: i, y: j}) -> 
+                        let
+                            xs = fromFoldable $ map (i + _) [-1, -1,  0,  1,  1,  1,  0, -1] 
+                            ys = fromFoldable $ map (j + _) [ 0,  1,  1,  1,  0, -1, -1, -1]
+                        in
+                            zip xs ys
+                                # map (\ (Tuple i j) -> {x: i, y: j})
+                                # filter (\ rec' -> isValidPositionRec rec' && (isEmptyAt (makeValidPosition rec') board))
+                                # mapMaybe (\ _ -> toFilledSquare $ boardAt board $ makeValidPosition rec)
+                    )
+
+            count = \ color -> length $ filter (isSquareColored color) filledSquares'
+
+            myCount = count myColor
+            opCount = count $ toggleColor myColor
+
+            total = myCount + opCount
+        in
+            if myCount > opCount then
+                fromIntegral (-100 * myCount) / fromIntegral total
+            else if myCount < opCount then
+                fromIntegral (100 * opCount) / fromIntegral total
+            else
+                0.0
+
+
+    heuristic_DiskSquares :: Color -> Board -> Number 
+    heuristic_DiskSquares myColor board = 
+        let
+            v = 
+                [ [ 20, -3, 11,  8,  8, 11, -3, 20 ]
+                , [ -3, -7, -4,  1,  1, -4, -7, -3 ]
+                , [ 11, -4,  2,  2,  2,  2, -4, 11 ]
+                , [  8,  1,  2, -3, -3,  2,  1,  8 ]
+                , [  8,  1,  2, -3, -3,  2,  1,  8 ]
+                , [ 11, -4,  2,  2,  2,  2, -4, 11 ]
+                , [ -3, -7, -4,  1,  1, -4, -7, -3 ]
+                , [ 20, -3, 11,  8,  8, 11, -3, 20 ]
+                ]
+
+            weight = \ color ->
+                boardSquaresColored color board
+                    # map (boardArrayAt v <<< positionRec <<< toPosition <<< Tagged_FilledSquare)
+                    # sum
+                    
+            myWeight = weight myColor
+            opWeight = weight $ toggleColor myColor
+        in
+            fromIntegral (myWeight - opWeight)
+
+
+    heuristic_CornerOccupancy :: Color -> Board -> Number 
+    heuristic_CornerOccupancy myColor board = 
+        let       
+            (BlackWhite {black: b, white: w}) = cornerCounts_BlackWhite board
+
+            ( Tuple myCornerCount oppCornerCount ) =
+                if myColor == Black then Tuple b w
+                else Tuple w b
+        in
+            fromIntegral $ 25 * (myCornerCount - oppCornerCount)
+
+
+    heuristic_CornerCloseness :: Color -> Board -> Number 
+    heuristic_CornerCloseness myColor board = 
+        let
+            xs = filledSquaresAdjacentToEmptyCorners board
+            count = \ color -> length $ filter (isSquareColored color) xs
+
+            myCount = count myColor
+            opCount = count $ toggleColor myColor
+        in
+            -12.5 * fromIntegral (myCount - opCount)
+
+
+    heuristic_Mobility :: Color -> NextMoves -> Board -> Number 
+    heuristic_Mobility myColor nextMoves board = 
+        let
+            opColor = toggleColor myColor
+
+            myMoveCount = length nextMoves
+            oppMoveCount = length $ validMoves opColor board
+
+            total = myMoveCount + oppMoveCount
+        in
+            if myMoveCount > oppMoveCount then
+                fromIntegral (100 *  myMoveCount) / fromIntegral total
+            else if myMoveCount < oppMoveCount then
+                fromIntegral (-100 * oppMoveCount) / fromIntegral total
+            else
+                0.0

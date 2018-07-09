@@ -4,8 +4,6 @@ module UnusedDiskCount
     , transferDiskTo
     , decreaseByOneFor
     , maxDiskCount
-    , black
-    , white
     )
     where 
 
@@ -43,14 +41,4 @@ decreaseByOneFor :: Color -> UnusedDiskCounts -> UnusedDiskCounts
 decreaseByOneFor color (BlackWhite {black: b, white: w}) =
     case color of
         Black -> makeBlackWhite (subtractOneForPositive b) w
-        White -> makeBlackWhite b (subtractOneForPositive w)
-
-
-black :: UnusedDiskCounts -> Int
-black (BlackWhite {black: x, white: _}) =
-    x
-
-
-white :: UnusedDiskCounts -> Int
-white (BlackWhite {black: _, white: x}) =
-    x     
+        White -> makeBlackWhite b (subtractOneForPositive w)    

@@ -8,8 +8,12 @@ module Display
     , Tagged_DisplaySquare(..)
     , toDisplaySquare
     , toPosition
-    , squaresColoredCountsStatus
+    , placedDiskCountsStatus
     , status
+    , potentialDiskClassesForColor
+    , flipDiskClassesForColor
+    , placedDiskClassesForColor
+    , unusedDiskClassesForColor
     )
     where
 
@@ -19,11 +23,12 @@ import Board as B
 import Data.Lazy (Lazy, defer, force)
 import Data.List (List, concatMap, elem, filter, find, nub)
 import Data.Maybe (Maybe(..), fromJust)
-import Disk (Color, toggleColor)
+import Disk (Color(..), toggleColor)
 import GameState (MidGameState(..), EndedGameState(..), Tagged_GameState(..), EndStatus(..), MidStatus(..), Winner(..), board_FromTaggedGameState, mbNextMoveColor_FromTaggedGameState, nextMoves_FromTaggedGameState, winner)
 import Partial.Unsafe (unsafePartial)
 import Position (Position)
 import Type.Data.Boolean (kind Boolean)
+import DisplayConstants as DC
 -- todo Arrays vs Lists ???
 
 newtype Empty_NonMove_DisplaySquare = EmptyNonMove_DisplaySquare 
@@ -220,8 +225,8 @@ status taggedGameState =
                 gameSummaryDisplay x
 
 
-squaresColoredCountsStatus :: Tagged_GameState -> String
-squaresColoredCountsStatus taggedGameState =
+placedDiskCountsStatus :: Tagged_GameState -> String
+placedDiskCountsStatus taggedGameState =
     board_FromTaggedGameState taggedGameState
         # B.squaresColoredCounts_BlackWhite
         # show 
@@ -239,3 +244,31 @@ gameSummaryDisplay x@(EndedGameState rec) =
             Tie            -> "TIE game"
     in 
         "GAME OVER (" <> reasonString <> ") " <> winnerString
+
+
+potentialDiskClassesForColor :: Color -> String
+potentialDiskClassesForColor color =
+    case color of
+        Black -> DC.potentialDisk_Black 
+        White -> DC.potentialDisk_White
+
+
+flipDiskClassesForColor :: Color -> String
+flipDiskClassesForColor color =
+    case color of
+        Black -> DC.flipDisk_Black  
+        White -> DC.flipDisk_White
+
+
+placedDiskClassesForColor :: Color -> String
+placedDiskClassesForColor color =
+    case color of
+        Black -> DC.placedDisk_Black
+        White -> DC.placedDisk_White        
+
+
+unusedDiskClassesForColor :: Color -> String
+unusedDiskClassesForColor color =
+    case color of
+        Black -> DC.unusedDisk_Black
+        White -> DC.unusedDisk_White    
