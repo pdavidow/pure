@@ -3,6 +3,8 @@
   "set": "psc-0.11.7-20180524-4",
   "source": "https://github.com/pdavidow/package-sets.git",
   "depends": [
+    "validation",
+    "parallel",
     "lazy",
     "debug",
     "numerics",
