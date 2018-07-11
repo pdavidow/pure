@@ -7,21 +7,22 @@ module GameHistory
     )
     where
       
-import Prelude 
-import GameState (StartGameState(..), Tagged_GameState(..), makeStartGameState, core_FromTaggedGameState, mbNextMoveColor_FromTaggedGameState, nextMoves_FromTaggedGameState, applyMoveOnGameState, isZeroUnusedDiskCount, colorResultingInTaggedGameState, isForfeitTurn)
-import Data.List.NonEmpty as NE
-import Partial.Unsafe (unsafePartial)
-import Board (Move(..)) 
-import Data.Maybe (Maybe(..), fromJust, fromMaybe)
-import Data.List (elem, drop, fromFoldable, reverse)
-import Disk (Color(..), toggleColor)
+import Prelude
+
+import Board (Move(..))
 import Data.Either (Either(..))
 import Data.Lazy (Lazy, defer, force)
-import Data.Array (null)
+import Data.List (List, elem, drop, fromFoldable, null, reverse)
+import Data.List.NonEmpty as NE
+import Data.Maybe (Maybe(..), fromJust, fromMaybe)
+import Disk (Color(..), toggleColor)
+import GameState (StartGameState(..), Tagged_GameState(..), makeStartGameState, mbNextMoveColor_FromTaggedGameState, core_FromTaggedGameState, nextMoveColor_FromStartGameState, nextMoveColor_FromMidGameState, nextMoves_FromTaggedGameState, applyMoveOnGameState, isZeroUnusedDiskCount, colorResultingInTaggedGameState, isForfeitTurn)
+import Lib (lefts)
+import Partial.Unsafe (unsafePartial)
+
 
 data MoveValidationError
-    = GameOver
-    | WrongColor
+    = WrongColor
     | NoAvailableDisk
     | NotOutflanking
 
@@ -35,28 +36,38 @@ makeHistory =
     unsafePartial $ fromJust $ NE.fromFoldable [Tagged_StartGameState makeStartGameState]       
 
 
-validateMove :: Move -> Tagged_GameState -> Array MoveValidationError 
-validateMove (Move rec) taggedGameState = 
+eiWrongColor :: Move -> Tagged_GameState -> Either MoveValidationError Unit 
+eiWrongColor (Move rec) taggedGameState = 
     let
-        isGameOver = 
-            case taggedGameState of
-                Tagged_StartGameState _ -> false
-                Tagged_MidGameState   _ -> false
-                Tagged_EndedGameState _ -> true
-
-        isWrongColor = 
-            rec.color /= fromMaybe Black (mbNextMoveColor_FromTaggedGameState taggedGameState) -- should never use default
-
-        isNoAvailableDisk = 
-            isZeroUnusedDiskCount rec.color $ core_FromTaggedGameState taggedGameState
-
-        isNotOutflanking =
-            not $ elem rec.emptySquare $ map (\(Move rec') -> rec'.emptySquare) $ nextMoves_FromTaggedGameState taggedGameState
+        f = \ color -> if rec.color == color then Right unit else Left WrongColor
     in
-        (if isGameOver        then [GameOver]        else []) <>
-        (if isWrongColor      then [WrongColor]      else []) <>
-        (if isNoAvailableDisk then [NoAvailableDisk] else []) <>
-        (if isNotOutflanking  then [NotOutflanking]  else [])  
+        case taggedGameState of
+            Tagged_StartGameState x -> f $ nextMoveColor_FromStartGameState x
+            Tagged_MidGameState   x -> f $ nextMoveColor_FromMidGameState x
+            Tagged_EndedGameState _ -> Left WrongColor -- should never get here
+
+
+eiNoAvailableDisk :: Move -> Tagged_GameState -> Either MoveValidationError Unit 
+eiNoAvailableDisk (Move rec) taggedGameState = 
+    if isZero then Left NoAvailableDisk else Right unit
+    where isZero = isZeroUnusedDiskCount rec.color $ core_FromTaggedGameState taggedGameState
+
+
+eiNotOutflanking :: Move -> Tagged_GameState -> Either MoveValidationError Unit 
+eiNotOutflanking (Move rec) taggedGameState =
+    if isOutflanking then Right unit else Left NotOutflanking
+    where isOutflanking = elem rec.emptySquare $ map (\(Move rec') -> rec'.emptySquare) $ nextMoves_FromTaggedGameState taggedGameState
+
+
+validateMove :: Move -> Tagged_GameState -> List MoveValidationError 
+validateMove move taggedGameState = 
+    [ eiWrongColor
+    , eiNoAvailableDisk
+    , eiNotOutflanking
+    ]
+        # map (\f -> f move taggedGameState)
+        # fromFoldable
+        # lefts
 
 
 applyMoveOnHistory :: Move -> GameHistory -> Either (NE.NonEmptyList MoveValidationError) GameHistory
@@ -64,12 +75,11 @@ applyMoveOnHistory move history =
     let
         lastState = NE.last history
         errors = validateMove move lastState
-        lzTaggedGameState = defer $ \ _ -> applyMoveOnGameState move lastState
     in
         if null errors then
-            Right $ NE.snoc history $ force $ lzTaggedGameState
+            Right $ NE.snoc history $ applyMoveOnGameState move lastState
         else
-            Left $ unsafePartial $ fromJust $ NE.fromList $ fromFoldable errors            
+            Left $ unsafePartial $ fromJust $ NE.fromList errors            
 
 
 undoHistoryOnce :: GameHistory -> Maybe GameHistory

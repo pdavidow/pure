@@ -14,10 +14,10 @@ import Prelude
 
 import BoardSize (boardSize)
 import Data.Array as Array
-import Data.Either (Either(..), either, fromRight, isRight)
+import Data.Either (Either(..), either)
 import Data.List (List(..), foldr, filter, fromFoldable, null, snoc)
-import Lib (haskellRange)
-import Partial.Unsafe (unsafePartial, unsafeCrashWith)
+import Lib (haskellRange, rights) 
+import Partial.Unsafe (unsafeCrashWith)
 
 
 type PositionRec = {x :: Int, y :: Int} -- one-based
@@ -78,8 +78,7 @@ adjacentPositions (Position ({x: i, y: j})) =
         , {x: i-1, y: j+1}, {x: i, y: j+1}, {x: i+1, y: j+1}
         ]
             # map makePosition
-            # filter isRight    
-            # map (unsafePartial fromRight)
+            # rights
 
 
 radiatingPositionRows :: Position -> List PositionRow
