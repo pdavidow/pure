@@ -18,6 +18,7 @@ module Board
     , moveColor
     , filledSquares
     , toFilledSquare
+    , filledSquareFlipCount
     , filledSquareColor
     , isSquareColored
     , isEmptyAt
@@ -41,7 +42,7 @@ import Data.Array as Array
 import Data.List (List, elem, nub, null, any, concatMap, filter, foldl, fromFoldable, head, tail, takeWhile, length, mapMaybe, range, zipWith)
 import Data.Maybe (Maybe(..), fromJust)
 import Data.Tuple (Tuple(..))
-import Disk (Disk, Color(..), diskColor, flipDisk, makeDisk, toggleColor)
+import Disk (Disk, Color(..), diskColor, flipCount, flipDisk, makeDisk, toggleColor)
 import Lib (haskellRange, mapTakeWhile) 
 import Partial.Unsafe (unsafePartial)
 import Position (Position, PositionRec, PositionRow(..), adjacentPositions, makeValidPosition, positionRec, radiatingPositionRows)
@@ -192,12 +193,7 @@ boardArrayAt array2D ({x: i, y: j}) =
 
 boardElems :: Board -> Array Tagged_Square
 boardElems (Board array2D) =
-    Array.concat array2D -- todo return List instead ?
-
-
-flipCount :: Move -> Int
-flipCount move =
-    length $ outflankSquares move        
+    Array.concat array2D -- todo return List instead ?     
 
 
 outflankPositions :: Move -> List Position  
@@ -292,6 +288,11 @@ filledCorners board =
 diskFrom :: FilledSquare -> Disk
 diskFrom (FilledSquare rec) =  
     rec.disk
+
+
+filledSquareFlipCount :: FilledSquare -> Int
+filledSquareFlipCount filledSquare =
+    flipCount $ diskFrom filledSquare  
 
 
 filledSquareColor :: FilledSquare -> Color

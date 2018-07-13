@@ -42,6 +42,7 @@ data Query a
   | MouseUp_MoveSquare Move_DisplaySquare a  
   | MouseEnter_FilledOpponentSquare FilledOpponent_DisplaySquare a
   | MouseLeave_FilledOpponentSquare a  
+  | Click_FlipCounts a
   | PreventDefault Event a
   | Undo a
 
@@ -54,6 +55,7 @@ type State =
     , outflanks_FocusedMoveSquare :: List Position 
     , outflanks_FocusedFilledOpponentSquare :: List Position
     , mb_SuggestedMove :: Maybe Move
+    , isShowFlipCounts :: Boolean
     }
 
 type Effects eff = ( dom :: DOM | eff )
@@ -79,6 +81,7 @@ component =
         , moves_FocusedFilledOpponentSquare: Nil        
         , outflanks_FocusedFilledOpponentSquare: Nil
         , mb_SuggestedMove: mb_SuggestedMove
+        , isShowFlipCounts: false
         }
         where
         players = DFLT.defaultPlayers  
@@ -130,12 +133,21 @@ component =
                     ]                
                     ( map (const $ renderUnusedDisk White) $ haskellRange 1 $ white unusedDiskCounts) -- todo use repeat ? 
                 ] 
-            , HH.button
-                [ HP.classes [ HH.ClassName "mt4 ml4" ]
-                , HP.enabled $ isUndoable state.gameHistory
-                , HE.onClick (HE.input_ Undo)
-                ]
-                [ HH.text "Undo" ] 
+            , HH.div
+                [ HP.classes [ HH.ClassName "controls-grid" ]
+                ] 
+                [ HH.button
+                    [ HP.classes [ HH.ClassName "mt4 ml4" ]
+                    , HP.enabled $ isUndoable state.gameHistory
+                    , HE.onClick (HE.input_ Undo)
+                    ]
+                    [ HH.text "Undo" ] 
+                , HH.button
+                    [ HP.classes [ HH.ClassName "mt4 ml4" ]
+                    , HE.onClick (HE.input_ Click_FlipCounts)
+                    ]
+                    [ HH.text "Flip-Counts" ] 
+                ]                
             , HH.div
                 [ HP.classes [ HH.ClassName "mt4 ml4 f3 lh-copy" ]
                 ]
@@ -179,7 +191,7 @@ component =
                 squareProps
                 [ HH.div
                     [ HP.classes [ HH.ClassName diskClasses ] ]
-                    []
+                    diskChildren
                 ] 
             where
 
@@ -339,6 +351,32 @@ component =
                         placedDiskClassesForColor rec.color                    
 
 
+            diskChildren :: Array (H.ComponentHTML Query)
+            diskChildren =
+                let
+                    mbFlipCount = 
+                        if state.isShowFlipCounts then
+                            case taggedDisplaySquare of 
+                                Tagged_Empty_NonMove_DisplaySquare _                                       -> Nothing
+                                Tagged_Move_DisplaySquare _                                                -> Nothing                                    
+                                Tagged_FilledSelf_DisplaySquare (FilledSelf_DisplaySquare rec)             -> Just rec.flipCount
+                                Tagged_FilledOpponent_DisplaySquare (FilledOpponent_DisplaySquare rec)     -> Just rec.flipCount
+                                Tagged_Empty_EndedGame_DisplaySquare _                                     -> Nothing                                                         
+                                Tagged_Filled_EndedGame_DisplaySquare (Filled_EndedGame_DisplaySquare rec) -> Just rec.flipCount
+                        else
+                            Nothing
+                in
+                    case mbFlipCount of
+                        Nothing ->
+                            []
+                        Just flipCount ->
+                            [ HH.div
+                                [ HP.classes [ HH.ClassName DC.flipCountText ]
+                                ]
+                                [ HH.text $ show flipCount  ]      
+                            ]
+
+
         renderUnusedDisk :: Color -> H.ComponentHTML Query
         renderUnusedDisk color =
             HH.figure
@@ -409,6 +447,14 @@ component =
             H.modify (_ 
                 { outflanks_FocusedFilledOpponentSquare = Nil
                 , moves_FocusedFilledOpponentSquare = Nil
+                }
+            )
+            pure next
+
+        Click_FlipCounts next -> do
+            isShowFlipCounts <- H.gets _.isShowFlipCounts  
+            H.modify (_ 
+                { isShowFlipCounts = not isShowFlipCounts
                 }
             )
             pure next

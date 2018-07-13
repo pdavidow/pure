@@ -86,7 +86,7 @@ outflankSquareBorder_FocusedFilledOpponentSquare =
 
 basicDisk :: String
 basicDisk =
-    " br-100 h2 w2 self-center ba " 
+    " br-100 h2 w2 self-center flex justify-center ba "
 
 
 potentialDisk :: String
@@ -149,4 +149,6 @@ unusedDisk_White =
     unusedDisk <> " bg-white " 
 
 
-             
+flipCountText :: String
+flipCountText =
+    " self-center gray f4 b roboto noselect "             

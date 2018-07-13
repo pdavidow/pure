@@ -32,15 +32,14 @@ derive instance eqPlayer :: Eq Player
 
 mbSuggestedMove :: Players -> Tagged_GameState -> Maybe Move         
 mbSuggestedMove players taggedGameState =
-    case taggedGameState of
-        Tagged_StartGameState x -> 
-            searchOnPlayerColor players taggedGameState $ nextMoveColor_FromStartGameState x
-
-        Tagged_MidGameState x ->
-            searchOnPlayerColor players taggedGameState $ nextMoveColor_FromMidGameState x
-
-        Tagged_EndedGameState _ -> 
-            Nothing
+    let
+        f :: Color -> Maybe Move
+        f = \color -> searchOnPlayerColor players taggedGameState color
+    in
+        case taggedGameState of
+            Tagged_StartGameState x -> f $ nextMoveColor_FromStartGameState x
+            Tagged_MidGameState   x -> f $ nextMoveColor_FromMidGameState   x
+            Tagged_EndedGameState _ -> Nothing
 
 
 searchOnPlayerColor :: Players -> Tagged_GameState -> Color -> Maybe Move

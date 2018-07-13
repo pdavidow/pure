@@ -31,6 +31,8 @@ import Type.Data.Boolean (kind Boolean)
 import DisplayConstants as DC
 -- todo Arrays vs Lists ???
 
+-- todo: Use Record v1.0.0 `merge` for base filled of {color, flipCount}
+
 newtype Empty_NonMove_DisplaySquare = EmptyNonMove_DisplaySquare 
     { position :: Position
     } 
@@ -43,6 +45,7 @@ data Move_DisplaySquare = Move_DisplaySquare
 data FilledSelf_DisplaySquare = FilledSelf_DisplaySquare 
     { position :: Position
     , color :: Color
+    , flipCount :: Int
     }  
 
 data FilledOpponent_DisplaySquare = FilledOpponent_DisplaySquare 
@@ -50,6 +53,7 @@ data FilledOpponent_DisplaySquare = FilledOpponent_DisplaySquare
     , color :: Color
     , moves :: List Position    
     , outflanks :: List Position
+    , flipCount :: Int    
     } 
 
 newtype Empty_EndedGame_DisplaySquare = Empty_EndedGame_DisplaySquare 
@@ -60,6 +64,7 @@ data Filled_EndedGame_DisplaySquare = Filled_EndedGame_DisplaySquare
     { position :: Position
     , color :: Color
     , mbIsWinningColor :: Maybe Boolean
+    , flipCount :: Int    
     }      
 
 data Tagged_DisplaySquare 
@@ -130,6 +135,7 @@ toDisplaySquare_NonEndedGame taggedGameState taggedSquare =
                         Tagged_FilledSelf_DisplaySquare $ FilledSelf_DisplaySquare 
                             { position: B.toPosition taggedSquare
                             , color: moveColor
+                            , flipCount: B.filledSquareFlipCount x 
                             }  
 
                     false ->
@@ -143,6 +149,7 @@ toDisplaySquare_NonEndedGame taggedGameState taggedSquare =
                                 , color: color
                                 , moves: movesForFilled                        
                                 , outflanks: outflanksForFilled
+                                , flipCount: B.filledSquareFlipCount x
                                 }  
     
 
@@ -162,6 +169,7 @@ toDisplaySquare_EndedGame endedGameState taggedSquare =
                     { position: B.toPosition taggedSquare
                     , color: color
                     , mbIsWinningColor: mbIsWinningColor color endedGameState
+                    , flipCount: B.filledSquareFlipCount x
                     }
 
 
