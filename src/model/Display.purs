@@ -1,5 +1,7 @@
 module Display
-    ( Empty_NonMove_DisplaySquare(..)
+    ( Empty_NotStartedGame_DisplaySquare(..)
+    , Filled_NotStartedGame_DisplaySquare(..)
+    , Empty_NonMove_DisplaySquare(..)
     , Move_DisplaySquare(..)
     , FilledSelf_DisplaySquare(..)
     , FilledOpponent_DisplaySquare(..)
@@ -8,30 +10,41 @@ module Display
     , Tagged_DisplaySquare(..)
     , toDisplaySquare
     , toPosition
-    , placedDiskCountsStatus
+    , placedDisksStatus
     , status
     , potentialDiskClassesForColor
     , flipDiskClassesForColor
     , placedDiskClassesForColor
     , unusedDiskClassesForColor
+    , gameOver_Emphasis
+    , isActiveClass
     )
     where
 
 import Prelude
-
 import Board as B
 import Data.Lazy (Lazy, defer, force)
 import Data.List (List, concatMap, elem, filter, find, nub)
 import Data.Maybe (Maybe(..), fromJust)
 import Disk (Color(..), toggleColor)
-import GameState (MidGameState(..), EndedGameState(..), Tagged_GameState(..), EndStatus(..), MidStatus(..), Winner(..), board_FromTaggedGameState, mbNextMoveColor_FromTaggedGameState, nextMoves_FromTaggedGameState, winner)
+import DisplayConstants as DC
+import GameState (MidGameState(..), EndedGameState(..), Tagged_GameState(..), EndStatus(..), MidStatus(..), Winner(..), board_FromTaggedGameState, mbNextMoveColor_FromTaggedGameState, nextMoves_FromTaggedGameState, isEndedGameState, winner) 
 import Partial.Unsafe (unsafePartial)
 import Position (Position)
 import Type.Data.Boolean (kind Boolean)
-import DisplayConstants as DC
 -- todo Arrays vs Lists ???
 
 -- todo: Use Record v1.0.0 `merge` for base filled of {color, flipCount}
+
+
+newtype Empty_NotStartedGame_DisplaySquare = Empty_NotStartedGame_DisplaySquare 
+    { position :: Position
+    } 
+
+data Filled_NotStartedGame_DisplaySquare = Filled_NotStartedGame_DisplaySquare 
+    { position :: Position
+    , color :: Color  
+    }    
 
 newtype Empty_NonMove_DisplaySquare = EmptyNonMove_DisplaySquare 
     { position :: Position
@@ -68,7 +81,9 @@ data Filled_EndedGame_DisplaySquare = Filled_EndedGame_DisplaySquare
     }      
 
 data Tagged_DisplaySquare 
-    = Tagged_Empty_NonMove_DisplaySquare Empty_NonMove_DisplaySquare
+    = Tagged_Empty_NotStartedGame_DisplaySquare Empty_NotStartedGame_DisplaySquare
+    | Tagged_Filled_NotStartedGame_DisplaySquare Filled_NotStartedGame_DisplaySquare
+    | Tagged_Empty_NonMove_DisplaySquare Empty_NonMove_DisplaySquare
     | Tagged_Move_DisplaySquare Move_DisplaySquare
     | Tagged_FilledSelf_DisplaySquare FilledSelf_DisplaySquare
     | Tagged_FilledOpponent_DisplaySquare FilledOpponent_DisplaySquare
@@ -84,29 +99,51 @@ instance eqMove_DisplaySquare :: Eq Move_DisplaySquare where
 toPosition :: Tagged_DisplaySquare -> Position
 toPosition taggedDisplaySquare =
     case taggedDisplaySquare of
-        Tagged_Empty_NonMove_DisplaySquare (EmptyNonMove_DisplaySquare rec)        -> rec.position
-        Tagged_Move_DisplaySquare (Move_DisplaySquare rec)                         -> B.movePosition rec.move
-        Tagged_FilledSelf_DisplaySquare (FilledSelf_DisplaySquare rec)             -> rec.position
-        Tagged_FilledOpponent_DisplaySquare (FilledOpponent_DisplaySquare rec)     -> rec.position
-        Tagged_Empty_EndedGame_DisplaySquare (Empty_EndedGame_DisplaySquare rec)   -> rec.position
-        Tagged_Filled_EndedGame_DisplaySquare (Filled_EndedGame_DisplaySquare rec) -> rec.position  
+        Tagged_Empty_NotStartedGame_DisplaySquare (Empty_NotStartedGame_DisplaySquare rec)   -> rec.position
+        Tagged_Filled_NotStartedGame_DisplaySquare (Filled_NotStartedGame_DisplaySquare rec) -> rec.position
+        Tagged_Empty_NonMove_DisplaySquare (EmptyNonMove_DisplaySquare rec)                  -> rec.position
+        Tagged_Move_DisplaySquare (Move_DisplaySquare rec)                                   -> B.movePosition rec.move
+        Tagged_FilledSelf_DisplaySquare (FilledSelf_DisplaySquare rec)                       -> rec.position
+        Tagged_FilledOpponent_DisplaySquare (FilledOpponent_DisplaySquare rec)               -> rec.position
+        Tagged_Empty_EndedGame_DisplaySquare (Empty_EndedGame_DisplaySquare rec)             -> rec.position
+        Tagged_Filled_EndedGame_DisplaySquare (Filled_EndedGame_DisplaySquare rec)           -> rec.position  
 
 
-toDisplaySquare :: Tagged_GameState -> B.Tagged_Square -> Tagged_DisplaySquare
-toDisplaySquare taggedGameState taggedSquare =
-    case taggedGameState of
-        Tagged_StartGameState _ ->
-            toDisplaySquare_NonEndedGame taggedGameState taggedSquare
+toDisplaySquare :: Tagged_GameState -> Boolean -> B.Tagged_Square -> Tagged_DisplaySquare
+toDisplaySquare taggedGameState isGameStarted taggedSquare =
+    if isGameStarted then
+        case taggedGameState of
+            Tagged_StartGameState _ ->
+                toDisplaySquare_PlayGame taggedGameState taggedSquare
 
-        Tagged_MidGameState _ ->
-            toDisplaySquare_NonEndedGame taggedGameState taggedSquare
+            Tagged_MidGameState _ ->
+                toDisplaySquare_PlayGame taggedGameState taggedSquare
 
-        Tagged_EndedGameState x -> 
-            toDisplaySquare_EndedGame x taggedSquare
+            Tagged_EndedGameState x -> 
+                toDisplaySquare_EndedGame x taggedSquare
+    else
+        toDisplaySquare_NotStartedGame taggedGameState taggedSquare
 
 
-toDisplaySquare_NonEndedGame :: Tagged_GameState -> B.Tagged_Square -> Tagged_DisplaySquare
-toDisplaySquare_NonEndedGame taggedGameState taggedSquare =
+toDisplaySquare_NotStartedGame :: Tagged_GameState -> B.Tagged_Square -> Tagged_DisplaySquare
+toDisplaySquare_NotStartedGame taggedGameState taggedSquare =
+    case taggedSquare of
+        B.Tagged_EmptySquare _ -> 
+            Tagged_Empty_NotStartedGame_DisplaySquare $ Empty_NotStartedGame_DisplaySquare 
+                { position: B.toPosition taggedSquare
+                }
+
+        B.Tagged_FilledSquare x -> 
+            let
+                color = B.filledSquareColor x
+            in
+                Tagged_Filled_NotStartedGame_DisplaySquare $ Filled_NotStartedGame_DisplaySquare
+                    { position: B.toPosition taggedSquare
+                    , color: color
+                    }
+
+toDisplaySquare_PlayGame :: Tagged_GameState -> B.Tagged_Square -> Tagged_DisplaySquare
+toDisplaySquare_PlayGame taggedGameState taggedSquare =
     let
         moveColor = unsafePartial fromJust $ mbNextMoveColor_FromTaggedGameState taggedGameState
         moves = nextMoves_FromTaggedGameState taggedGameState
@@ -199,38 +236,41 @@ movesAndOutflanksForFilled position allMoves =
         }        
 
 
-status :: Tagged_GameState -> String
-status taggedGameState =
+status :: Boolean -> Tagged_GameState -> String
+status isGameStarted taggedGameState =
     let
         lzNextMoveColor :: Lazy Color
         lzNextMoveColor = defer $ \ _ -> unsafePartial fromJust $ mbNextMoveColor_FromTaggedGameState taggedGameState
 
         lzNextMoveColorStatusOn :: Color -> Lazy String
-        lzNextMoveColorStatusOn color = defer $ \ _ -> (show color) <> " to move"
+        lzNextMoveColorStatusOn color = defer $ \ _ -> " To move: " <> show color
 
         lzNextMoveColorStatus :: Lazy String
         lzNextMoveColorStatus = defer $ \ _ -> force $ lzNextMoveColorStatusOn $ force lzNextMoveColor
     in
-        case taggedGameState of
-            Tagged_StartGameState _ ->
-                "Game Start, " <> force lzNextMoveColorStatus
-            
-            Tagged_MidGameState (MidGameState rec) ->
-                case rec.status of
-                    Normal -> 
-                        force lzNextMoveColorStatus
-                    
-                    ForfeitTurn_Rule2 -> 
-                        let
-                            color = force lzNextMoveColor
-                        in
-                            (show $ toggleColor color) <> " forfeits Turn, " <> (force $ lzNextMoveColorStatusOn color)
-                    
-                    TransferDisk_Rule9 -> 
-                        "Transfer Disk, " <> force lzNextMoveColorStatus
+        if isGameStarted then
+            case taggedGameState of
+                Tagged_StartGameState _ ->
+                    "Awaiting first move. " <> force lzNextMoveColorStatus
+                
+                Tagged_MidGameState (MidGameState rec) ->
+                    case rec.status of
+                        Normal -> 
+                            force lzNextMoveColorStatus
+                        
+                        ForfeitTurn_Rule2 -> 
+                            let
+                                color = force lzNextMoveColor
+                            in
+                                (show $ toggleColor color) <> " forfeits Turn, " <> (force $ lzNextMoveColorStatusOn color)
+                        
+                        TransferDisk_Rule9 -> 
+                            "Transfer Disk, " <> force lzNextMoveColorStatus
 
-            Tagged_EndedGameState x -> 
-                gameSummaryDisplay x
+                Tagged_EndedGameState x -> 
+                    gameSummaryDisplay x
+        else
+            "Game not started"
 
 
 placedDiskCountsStatus :: Tagged_GameState -> String
@@ -280,3 +320,27 @@ unusedDiskClassesForColor color =
     case color of
         Black -> DC.unusedDisk_Black
         White -> DC.unusedDisk_White    
+
+
+gameOver_Emphasis :: Tagged_GameState -> String
+gameOver_Emphasis taggedGameState =       
+    if isEndedGameState taggedGameState then
+        DC.gameOver_Emphasis
+    else
+        ""
+
+isActiveClass :: Boolean -> String           
+isActiveClass bool = 
+    if bool then
+        DC.isActive
+    else
+        ""
+    
+
+placedDisksStatus :: Boolean -> Tagged_GameState -> String    
+placedDisksStatus bool taggedGameState = 
+    if bool then
+        "Placed disks: " <> placedDiskCountsStatus taggedGameState
+    else
+        ""
+            

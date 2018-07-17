@@ -1,4 +1,4 @@
-# The Game of Reversi (Othello)
+# The Game of Othello
 
 Rules: http://www.boardgamecapital.com/game_rules/othello.pdf
 

@@ -5,23 +5,14 @@
     display: grid;
     grid-template-columns: repeat(var(--boardSize), 80px);
     grid-auto-rows: 80px;
-    /* align-content: space-evenly; */
-    /* place-items: start start; */
-    /* align-items: left; */
-    /* justify-items: left; */
-    /* grid-gap: 10px; */
-    /* padding: 10px; */
 }
 .board-grid-item {
-  /* border: 1px solid rgba(0, 0, 0, 0.8);
-  padding: 20px; */
   align-self: center
 }
 
 .unusedDiskGrids-grid {
   display: grid;
-  /* grid-template-columns: 80px; */
-  grid-auto-rows: 30px;
+  grid-auto-rows: 25px;
 }
 
 .unusedDisk-grid {
@@ -31,9 +22,10 @@
 .unusedDisk-grid-item {
 }
 
+/* todo unused */
 .controls-grid {
   display: grid;
-  grid-template-columns: 80px 160px; 
+  grid-template-columns: 80px 130px 100px; 
 }
 
 /* https://stackoverflow.com/questions/3779534/how-do-i-disable-text-selection-with-css-or-javascript */

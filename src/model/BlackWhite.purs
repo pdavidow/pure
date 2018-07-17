@@ -1,9 +1,12 @@
 module BlackWhite
     ( BlackWhite(..)
     , makeBlackWhite
-    , ofColor -- todo use more
-    , black 
-    , white 
+    , getItemColored -- todo use more
+    , getItemBlack 
+    , getItemWhite 
+    , setItemColored 
+    , setItemBlack 
+    , setItemWhite     
     )
     where
 
@@ -26,18 +29,35 @@ makeBlackWhite b w =
     BlackWhite {black: b, white: w}
 
 
-ofColor :: forall a. Color -> BlackWhite a -> a
-ofColor color (BlackWhite rec) =
+getItemColored :: forall a. Color -> BlackWhite a -> a
+getItemColored color x =
     case color of
-        Black -> rec.black
-        White -> rec.white
+        Black -> getItemBlack x
+        White -> getItemWhite x
 
 
-black :: forall a. BlackWhite a -> a
-black (BlackWhite rec) = 
+getItemBlack :: forall a. BlackWhite a -> a
+getItemBlack (BlackWhite rec) = 
     rec.black
 
 
-white :: forall a. BlackWhite a -> a
-white (BlackWhite rec) = 
+getItemWhite :: forall a. BlackWhite a -> a
+getItemWhite (BlackWhite rec) = 
     rec.white    
+
+
+setItemColored :: forall a. Color -> BlackWhite a -> a -> BlackWhite a
+setItemColored color bw elem =
+    case color of
+        Black -> setItemBlack bw elem
+        White -> setItemWhite bw elem
+
+
+setItemBlack :: forall a. BlackWhite a -> a -> BlackWhite a
+setItemBlack (BlackWhite rec) x =       
+    BlackWhite $ rec {black = x}
+
+
+setItemWhite :: forall a. BlackWhite a -> a -> BlackWhite a
+setItemWhite (BlackWhite rec) x =       
+    BlackWhite $ rec {white = x}    

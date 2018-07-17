@@ -21,6 +21,8 @@ module GameState
     , colorResultingInTaggedGameState
     , isZeroUnusedDiskCount
     , isForfeitTurn
+    , isStartGameState
+    , isEndedGameState
     , winner
     , swapCore
     , makeStartGameStateOn -- todo only used in testing
@@ -293,6 +295,22 @@ isForfeitTurn taggedGameState =
             false
 
 
+isStartGameState :: Tagged_GameState -> Boolean
+isStartGameState taggedGameState = 
+    case taggedGameState of
+        Tagged_StartGameState _ -> true
+        Tagged_MidGameState   _ -> false
+        Tagged_EndedGameState _ -> false
+
+
+isEndedGameState :: Tagged_GameState -> Boolean
+isEndedGameState taggedGameState = 
+    case taggedGameState of
+        Tagged_StartGameState _ -> false
+        Tagged_MidGameState   _ -> false
+        Tagged_EndedGameState _ -> true
+
+
 winner :: EndedGameState -> Winner
 winner x =  
     -- Rule 10: Disks are counted and the player with the majority of their color showing is the winner.
@@ -319,7 +337,6 @@ swapCore taggedGameState core =
 
         Tagged_EndedGameState (EndedGameState rec) -> 
             Tagged_EndedGameState $ EndedGameState $ rec {core = core}
-
 
 
 heuristic_Score :: Tagged_GameState -> Number 

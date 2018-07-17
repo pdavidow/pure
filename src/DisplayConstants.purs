@@ -152,3 +152,19 @@ unusedDisk_White =
 flipCountText :: String
 flipCountText =
     " self-center gray f4 b roboto noselect "             
+
+
+gameOver_Emphasis ::  String
+gameOver_Emphasis =       
+    " b "
+      
+
+-- todo unused
+modalSettingsId :: String
+modalSettingsId =
+    " modal-ter "      
+
+
+isActive :: String
+isActive =
+    " is-active "      
