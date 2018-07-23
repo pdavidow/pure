@@ -30,6 +30,13 @@ type GameHistory = NE.NonEmptyList Tagged_GameState
 
 derive instance eqMoveValidationError :: Eq MoveValidationError
 
+instance showMoveValidationError :: Show MoveValidationError where
+    show error = 
+        case error of
+            WrongColor      -> "WrongColor"
+            NoAvailableDisk -> "NoAvailableDisk"
+            NotOutflanking  -> "NotOutflanking"
+
 
 makeHistory :: GameHistory
 makeHistory =

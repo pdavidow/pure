@@ -1,29 +1,32 @@
 module BoardComponent
     ( Query
     , State
+    , Effects
+    , StartRestart(..)
     , component
     )
     where
 
 import Prelude
 
-import BlackWhite (makeBlackWhite, getItemBlack, getItemWhite, getItemColored, setItemColored)
+import BlackWhite (getItemBlack, getItemWhite, getItemColored, setItemColored)
 import Board (Move, boardElems, movePosition)
 import BoardSize (boardSize)
 import Control.Monad.Aff (Aff)
+import Control.Monad.Eff.Class (liftEff)
+import Control.Monad.Eff.Console (CONSOLE)
+import Control.Monad.Eff.Random (RANDOM)
 import DOM (DOM)
 import DOM.Classy.Event (preventDefault, toEvent)
 import DOM.Event.Event (Event)
 import DOM.HTML.Indexed.InputType as DOMT
-import Data.Either (fromRight)
 import Data.List (List(Nil), elem)
 import Data.List.NonEmpty as NE
 import Data.Maybe (Maybe(..), fromJust, isJust)
-import Defaults as DFLT
 import Disk (Color(..), toggleColor)
-import Display (Empty_NotStartedGame_DisplaySquare(..), Filled_NotStartedGame_DisplaySquare(..), Move_DisplaySquare(..), FilledSelf_DisplaySquare(..), FilledOpponent_DisplaySquare(..), Filled_EndedGame_DisplaySquare(..), Tagged_DisplaySquare(..), toDisplaySquare, toPosition, placedDisksStatus, status, potentialDiskClassesForColor, flipDiskClassesForColor, gameOver_Emphasis, placedDiskClassesForColor, unusedDiskClassesForColor, isActiveClass)
+import Display (Filled_NotStartedGame_DisplaySquare(..), Move_DisplaySquare(..), FilledSelf_DisplaySquare(..), FilledOpponent_DisplaySquare(..), Filled_EndedGame_DisplaySquare(..), Tagged_DisplaySquare(..), toDisplaySquare, toPosition, placedDisksStatus, status, potentialDiskClassesForColor, flipDiskClassesForColor, gameOver_Emphasis, placedDiskClassesForColor, unusedDiskClassesForColor, isActiveClass_Tag, nameForStartRestartButton)
 import DisplayConstants as DC
-import GameHistory (GameHistory, applyMoveOnHistory, makeHistory, undoHistoryOnce)
+import GameHistory (GameHistory, makeHistory, undoHistoryOnce)
 import GameState (NextMoves, Tagged_GameState, board_FromTaggedGameState, nextMoves_FromTaggedGameState, mbNextMoveColor_FromTaggedGameState, unusedDiskCounts_FromTaggedGameState, isStartGameState)
 import Halogen as H
 import Halogen.HTML as HH
@@ -32,10 +35,18 @@ import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties.ARIA as HPA
 import Lib (setCssProp, haskellRange)
 import Partial.Unsafe (unsafePartial)
-import Player (Player(..), Players, mbSuggestedMove, isPlayer_Computer, isPlayer_Person, isComputerVsComputer)
+import Player (Player(..), Players, isPlayer_Computer, isPlayer_Person, isComputerVsComputer)
 import Position (Position)
+import Sequencer (moveSequence, advanceHistory, mbSuggestedMove)
+import SettingsDefaults as DFLT
 import Type.Data.Boolean (kind Boolean)
 import UnusedDiskCount (UnusedDiskCounts, maxDiskCount)
+import Data.Monoid (guard)
+
+data StartRestart 
+    = NotStarted
+    | Started 
+    | AwaitingRestart
 
 data Query a
   = MouseEnter_StartStopButton a
@@ -53,9 +64,10 @@ data Query a
   | Click_Settings Color a
   | Click_Settings_Computer Color a
   | Click_Settings_Person Color a  
-  | Click_GameStartStop a
+  | Click_GameStartRestart a
   | Click_NewGame a
   | Click_Close_NewGameConfirm a 
+  | Click_ComputerProceed a
   | PreventDefault Event a
   | Undo a
   | NullOp a
@@ -72,8 +84,9 @@ type State =
     , isShowFlipCounts :: Boolean
     , isActive_SettingsModal :: Boolean
     , isImminentGameStart :: Boolean
+    , startRestartStatus :: StartRestart
     , isGameStarted :: Boolean
-    , isAwaitingNewGameConfirm :: Boolean
+    , isAwaitingRestartConfirm :: Boolean -- todo delete redundant unused...
     , activeSettingsColor :: Color
     }
 
@@ -81,7 +94,10 @@ type TempSettingsState =
     { players :: Players
     }
 
-type Effects eff = ( dom :: DOM | eff )
+type Effects eff = ( dom :: DOM, console :: CONSOLE, random :: RANDOM | eff )
+
+
+derive instance eqStartRestart :: Eq StartRestart   
 
 
 component :: forall eff. H.Component HH.HTML Query Unit Void (Aff (Effects eff))
@@ -107,14 +123,15 @@ component =
         , isShowFlipCounts: false
         , isActive_SettingsModal: false
         , isImminentGameStart: false
+        , startRestartStatus: NotStarted
         , isGameStarted: false
-        , isAwaitingNewGameConfirm: false
+        , isAwaitingRestartConfirm: false
         , activeSettingsColor: Black           
         }
         where
         players = DFLT.defaultPlayers  
         gameHistory = makeHistory 
-        mb_SuggestedMove = mbSuggestedMove players $ gameStateOn gameHistory
+        mb_SuggestedMove = mbSuggestedMove players gameHistory
 
 
     isUndoable :: GameHistory -> Boolean
@@ -146,13 +163,20 @@ component =
                     ]    
                     [ HH.text "OTHELLO" ] 
                 , HH.button
-                    [ HP.classes [ HH.ClassName "ml3 button is-small" ]
-                    , HP.disabled $ (state.isGameStarted && isStartGameState gameState) || isComputerVsComputer state.players
+                    [ HP.classes [ HH.ClassName "ml3 button is-small is-inverted is-outlined" ]
+                    , HP.disabled $ (state.isGameStarted && isStartGameState gameState)
                     , HE.onMouseEnter $ HE.input_ $ MouseEnter_StartStopButton
                     , HE.onMouseLeave $ HE.input_ $ MouseLeave_StartStopButton                    
-                    , HE.onClick $ HE.input_ Click_GameStartStop
+                    , HE.onClick $ HE.input_ Click_GameStartRestart
                     ] 
-                    [ HH.text nameForStartStopButton ]
+                    [ HH.text $ nameForStartRestartButton state.isGameStarted state.players]
+                , HH.a
+                    [ HP.classes [ HH.ClassName "ml3" ] -- button modal-button
+                    --, HP.prop (HH.PropName "data-target") DC.modalSettingsId 
+                    , HPA.hasPopup "true"
+                    , HE.onClick $ HE.input_ Click_Open_Settings
+                    ]
+                    [ HH.text "Settings" ]                      
                 , HH.a
                     [ HP.classes [ HH.ClassName "ml3" ]
                     , HP.target "_blank" -- open in new tab
@@ -167,14 +191,7 @@ component =
                     , HE.onDragStart $ HE.input $ PreventDefault <<< toEvent
                     ]
                     [ HH.text "GitHub" ]     
-                , HH.a
-                    [ HP.classes [ HH.ClassName "ml3" ] -- button modal-button
-                    --, HP.prop (HH.PropName "data-target") DC.modalSettingsId 
-                    , HPA.hasPopup "true"
-                    , HE.onClick $ HE.input_ Click_Open_Settings
                     ]
-                    [ HH.text "Settings" ]  
-                ]
             , HH.div
                 [ HP.classes [ HH.ClassName "ml3" ]  
                 ]
@@ -198,7 +215,7 @@ component =
                     ] 
                 , HH.span
                     [ HP.classes [ HH.ClassName "mt2" ] -- todo unused controls-grid"
-                    ] 
+                    ] $
                     [ HH.button
                         [ HP.classes [ HH.ClassName "" ]
                         , HP.enabled $ isUndoable state.gameHistory
@@ -210,19 +227,29 @@ component =
                         , HE.onClick $ HE.input_ Click_FlipCounts
                         , HP.disabled $ not state.isGameStarted
                         ]
-                        [ HH.text "Flip Counts" ]                               
-                    , HH.span
+                        [ HH.text "Flip Counts" ]   
+                    ]
+                    <> 
+                    guard (isComputerVsComputer state.players) [ HH.button -- https://github.com/slamdata/purescript-halogen/issues/483
+                        [ HP.classes [ HH.ClassName "ml4" ]
+                        , HE.onClick $ HE.input_ Click_ComputerProceed
+                        , HP.disabled $ not state.isGameStarted
+                        ]
+                        [ HH.text "Computer Proceed" ]  
+                    ]  
+                    <>
+                    [ HH.span
                         [ HP.classes [ HH.ClassName $ "ml4 " <> gameOver_Emphasis gameState ] 
                         ]
                         [ HH.text $ placedDisksStatus state.isGameStarted gameState]     
-                    ]                                    
+                    ]                               
                 , HH.div
                     [ HP.classes [ HH.ClassName "mt2 f3 lh-copy b" ]
-                    ]
-                    [ HH.text $ status state.isGameStarted gameState ]     
-                ]               
-            , HH.div
-                [ HP.classes [ HH.ClassName $ "modal" <> (isActiveClass state.isActive_SettingsModal)  ]
+                    ] 
+                    [ HH.text $ status state.isGameStarted state.players gameState ]  
+                ]   
+            , HH.div -- todo refactor into separate module
+                [ HP.classes [ HH.ClassName $ "modal" <> (isActiveClass_Tag state.isActive_SettingsModal)  ]
                 --, HP.id_ DC.modalSettingsId 
                 ]
                 [ HH.div
@@ -254,14 +281,14 @@ component =
                             ]
                             [ HH.ul_
                                 [ HH.li
-                                    [ HP.classes [ HH.ClassName $ isActiveClass $ state.activeSettingsColor == Black ]                            
+                                    [ HP.classes [ HH.ClassName $ isActiveClass_Tag $ state.activeSettingsColor == Black ]                            
                                     ]
                                     [ HH.a
                                         [ HE.onClick $ HE.input_ $ Click_Settings Black ]
                                         [ HH.text "Black" ]
                                     ]
                                 , HH.li
-                                    [ HP.classes [ HH.ClassName $ isActiveClass $ state.activeSettingsColor == White ]                            
+                                    [ HP.classes [ HH.ClassName $ isActiveClass_Tag $ state.activeSettingsColor == White ]                            
                                     ]
                                     [ HH.a
                                         [ HE.onClick $ HE.input_ $ Click_Settings White ]
@@ -303,7 +330,7 @@ component =
                     ]
                 ]
             , HH.div
-                [ HP.classes [ HH.ClassName $ "modal" <> (isActiveClass state.isAwaitingNewGameConfirm)  ]
+                [ HP.classes [ HH.ClassName $ "modal" <> (isActiveClass_Tag isShow_StartRestartModal)  ]
                 ]
                 [ HH.div
                     [ HP.classes [ HH.ClassName "modal-background" ]
@@ -339,17 +366,15 @@ component =
             ]
         where 
 
-        nameForStartStopButton :: String
-        nameForStartStopButton =
-            if state.isGameStarted then
-                if isComputerVsComputer state.players then
-                    "----" -- blocking for now, web-worker to the rescue...
-                else
-                    "New Game"
-            else
-                "Start" 
+        isShow_StartRestartModal :: Boolean
+        isShow_StartRestartModal =
+            (state.startRestartStatus == AwaitingRestart) && 
+                state.isAwaitingRestartConfirm
+                --(not $ isStartGameState gameState) 
+                    -- todo del && (not $ isCurrentPlayer_Computer state.players gameState)
 
 
+        -- todo unused?
         proceedOnGameStart :: forall a. (a -> Maybe (Query Unit)) -> a -> Maybe (Query Unit)
         proceedOnGameStart x =
             if state.isGameStarted then
@@ -365,10 +390,11 @@ component =
 
         unusedDiskCounts :: UnusedDiskCounts
         unusedDiskCounts =
-            if state.isImminentGameStart || state.isGameStarted then
-                unusedDiskCounts_FromTaggedGameState gameState
-            else
-                makeBlackWhite 0 0
+            unusedDiskCounts_FromTaggedGameState gameState
+            -- if state.isImminentGameStart || state.isGameStarted then
+            --     unusedDiskCounts_FromTaggedGameState gameState
+            -- else
+            --     makeBlackWhite 0 0
 
 
         mbMoveColor :: Maybe Color
@@ -660,21 +686,24 @@ component =
             pure next
 
         MouseUp_MoveSquare x@(Move_DisplaySquare rec) next -> do
+            -- https://functionalprogramming.slack.com/archives/C717K38CE/p1531977189000117
+
             -- Events bubble up from inner elements to outer elements, so inner event handlers will be run first
             mouseDown_MoveSquare <- H.gets _.mb_MouseDown_MoveSquare
 
-            when (mouseDown_MoveSquare == Just x) do
-                gameHistory <- H.gets _.gameHistory            
-                let gameHistory' = unsafePartial fromRight $ applyMoveOnHistory rec.move gameHistory
-                players <- H.gets _.players
-                --let gameHistory'' = moveSequence players gameHistory'
+            if mouseDown_MoveSquare == Just x  
+                then do
+                    gameHistory <- H.gets _.gameHistory             
+                    players <- H.gets _.players   
+                    gameHistory' <- liftEff $ advanceHistory players gameHistory rec.move   
 
-                H.modify (_ 
-                    { gameHistory = gameHistory'
-                    , mb_SuggestedMove = mbSuggestedMove players $ gameStateOn gameHistory'
-                    }
-                )
-
+                    H.modify (_ 
+                            { gameHistory = gameHistory'
+                            , mb_SuggestedMove = mbSuggestedMove players gameHistory'
+                        }
+                    )
+                else 
+                    pure unit
             pure next       
 
         MouseUp_Anywhere next -> do
@@ -702,19 +731,40 @@ component =
             )
             pure next
 
-        Click_GameStartStop next -> do
+        Click_GameStartRestart next -> do    
+            startRestartStatus <-  H.gets _.startRestartStatus 
+
+            if startRestartStatus == NotStarted
+                then do 
+                    H.modify (_ 
+                        { startRestartStatus = Started
+                        }
+                    )                
+                else if startRestartStatus == Started   
+                    then do
+                        H.modify (_ 
+                            { startRestartStatus = AwaitingRestart
+                            }
+                        )
+                    else do
+                        pure unit
+
+            gameHistory <- H.gets _.gameHistory             
+            players <- H.gets _.players   
+            gameHistory' <- liftEff $ moveSequence players gameHistory
+
             H.modify (_ 
-                { isGameStarted = true
-                , isImminentGameStart = false
+                { isImminentGameStart = false
+                , isGameStarted = true
+                , gameHistory = gameHistory'
+                , mb_SuggestedMove = mbSuggestedMove players gameHistory'
                 }
-            )       
+            )            
             
-            players <- H.gets _.players  
-            gameHistory <- H.gets _.gameHistory  
-            let gameState = gameStateOn gameHistory
-            when ((not $ isStartGameState gameState) && (not $ isComputerVsComputer players)) do
+            let gameState = NE.last gameHistory' 
+            when (not $ isStartGameState gameState) do
                 H.modify (_ 
-                    { isAwaitingNewGameConfirm = true
+                    { isAwaitingRestartConfirm = true
                     }
                 )   
 
@@ -751,7 +801,7 @@ component =
 
         Click_Settings_Computer color next -> do      
             players <- H.gets _.players 
-            let player' = Player DFLT.defaultPlayerType_Computer  
+            let player' = Player color DFLT.defaultPlayerType_Computer  
             let players' = setItemColored color players player'
 
             H.modify (_ 
@@ -762,13 +812,24 @@ component =
 
         Click_Settings_Person color next -> do     
             players <- H.gets _.players 
-            let player' = Player DFLT.defaultPlayerType_Person            
+            let player' = Player color DFLT.defaultPlayerType_Person            
             let players' = setItemColored color players player'
 
             H.modify (_ 
                 { players = players'
                 }
             )  
+            pure next
+
+        Click_ComputerProceed next -> do
+            gameHistory <- H.gets _.gameHistory             
+            players <- H.gets _.players   
+            gameHistory' <- liftEff $ moveSequence players gameHistory
+
+            H.modify (_ 
+                { gameHistory = gameHistory'
+                }
+            )         
             pure next
 
         PreventDefault event next -> do
@@ -785,17 +846,16 @@ component =
 
                 Just gameHistory' -> do                    
                     players <- H.gets _.players
-
                     H.modify (_ 
                         { gameHistory = gameHistory'
-                        , mb_SuggestedMove = mbSuggestedMove players $ gameStateOn gameHistory'
+                        , mb_SuggestedMove = mbSuggestedMove players gameHistory'
                         }
                     )
                     pure next
 
         Click_Close_NewGameConfirm next -> do
             H.modify (_ 
-                { isAwaitingNewGameConfirm = false
+                { isAwaitingRestartConfirm = false
                 }
             )         
             pure next

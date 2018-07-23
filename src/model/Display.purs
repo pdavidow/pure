@@ -17,7 +17,8 @@ module Display
     , placedDiskClassesForColor
     , unusedDiskClassesForColor
     , gameOver_Emphasis
-    , isActiveClass
+    , isActiveClass_Tag
+    , nameForStartRestartButton
     )
     where
 
@@ -32,6 +33,9 @@ import GameState (MidGameState(..), EndedGameState(..), Tagged_GameState(..), En
 import Partial.Unsafe (unsafePartial)
 import Position (Position)
 import Type.Data.Boolean (kind Boolean)
+import Player (Player(..), PlayerType(..), Players, isComputerVsComputer)
+import Sequencer (currentPlayer, opponentPlayer)
+ 
 -- todo Arrays vs Lists ???
 
 -- todo: Use Record v1.0.0 `merge` for base filled of {color, flipCount}
@@ -236,41 +240,41 @@ movesAndOutflanksForFilled position allMoves =
         }        
 
 
-status :: Boolean -> Tagged_GameState -> String
-status isGameStarted taggedGameState =
+status :: Boolean -> Players -> Tagged_GameState -> String
+status isGameStarted players taggedGameState =
     let
-        lzNextMoveColor :: Lazy Color
-        lzNextMoveColor = defer $ \ _ -> unsafePartial fromJust $ mbNextMoveColor_FromTaggedGameState taggedGameState
+        lzCurrentPlayer' :: Lazy Player
+        lzCurrentPlayer' = defer $ \_ -> unsafePartial fromJust $ currentPlayer players taggedGameState 
 
-        lzNextMoveColorStatusOn :: Color -> Lazy String
-        lzNextMoveColorStatusOn color = defer $ \ _ -> " To move: " <> show color
+        lzOpponentPlayer' :: Lazy Player
+        lzOpponentPlayer' = defer $ \_ -> unsafePartial fromJust $ opponentPlayer players taggedGameState    
 
-        lzNextMoveColorStatus :: Lazy String
-        lzNextMoveColorStatus = defer $ \ _ -> force $ lzNextMoveColorStatusOn $ force lzNextMoveColor
+        lzFirstMoveStatus :: Player -> Lazy String
+        lzFirstMoveStatus player = defer $ \_ -> playerStatus player <> " to move first"  
+
+        lzNextMoveStatus :: Player -> Lazy String
+        lzNextMoveStatus player = defer $ \_ -> playerStatus player <> " to move next"                                                        
     in
-        if isGameStarted then
-            case taggedGameState of
-                Tagged_StartGameState _ ->
-                    "Awaiting first move. " <> force lzNextMoveColorStatus
-                
-                Tagged_MidGameState (MidGameState rec) ->
-                    case rec.status of
-                        Normal -> 
-                            force lzNextMoveColorStatus
-                        
-                        ForfeitTurn_Rule2 -> 
-                            let
-                                color = force lzNextMoveColor
-                            in
-                                (show $ toggleColor color) <> " forfeits Turn, " <> (force $ lzNextMoveColorStatusOn color)
-                        
-                        TransferDisk_Rule9 -> 
-                            "Transfer Disk, " <> force lzNextMoveColorStatus
+        case taggedGameState of
+            Tagged_StartGameState _ -> force $ lzFirstMoveStatus $ force lzCurrentPlayer'
 
-                Tagged_EndedGameState x -> 
-                    gameSummaryDisplay x
-        else
-            "Game not started"
+            Tagged_MidGameState (MidGameState rec) ->
+                case rec.status of
+                    Normal -> force $ lzNextMoveStatus $ force lzCurrentPlayer'                       
+                    ForfeitTurn_Rule2 ->  (force $ lzNextMoveStatus $ force lzCurrentPlayer') <> " (" <> (playerStatus $ force lzOpponentPlayer') <> " forfeits turn)"     
+                    TransferDisk_Rule9 -> "TRANSFER UNUSED-DISK, " <> (force $ lzNextMoveStatus $ force lzCurrentPlayer')  
+
+            Tagged_EndedGameState x -> gameSummaryDisplay x
+
+
+playerStatus :: Player -> String
+playerStatus (Player color playerType) = 
+    let
+        suffix = show color
+    in
+        case playerType of
+            Person   _ -> "Person " <> suffix
+            Computer _ -> "Computer " <> suffix  
 
 
 placedDiskCountsStatus :: Tagged_GameState -> String
@@ -329,8 +333,8 @@ gameOver_Emphasis taggedGameState =
     else
         ""
 
-isActiveClass :: Boolean -> String           
-isActiveClass bool = 
+isActiveClass_Tag :: Boolean -> String           
+isActiveClass_Tag bool = 
     if bool then
         DC.isActive
     else
@@ -344,3 +348,10 @@ placedDisksStatus bool taggedGameState =
     else
         ""
             
+nameForStartRestartButton :: Boolean -> Players -> String
+nameForStartRestartButton isGameStarted players =
+    if isGameStarted then
+        "Restart"
+    else
+        "Start" 
+         

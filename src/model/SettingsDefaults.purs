@@ -1,18 +1,20 @@
-module Defaults
+module SettingsDefaults
     where
+
 
 import Prelude
 import BlackWhite (makeBlackWhite)
+import Disk (Color(..))
 import Player (Player(..), PlayerType(..), Players)
 import Search (SearchDepth(..), Strategy(..))
 
 
 defaultPlayers :: Players
 defaultPlayers =
-    makeBlackWhite playerBlack playerWhite
+    makeBlackWhite b w
     where
-        playerBlack = Player defaultPlayerType_Person              
-        playerWhite = Player defaultPlayerType_Computer 
+        b = Player Black defaultPlayerType_Computer               
+        w = Player White defaultPlayerType_Computer
     
 
 defaultSearchDepth :: SearchDepth
@@ -22,12 +24,13 @@ defaultSearchDepth =
 
 defaultPlayerType_Computer :: PlayerType
 defaultPlayerType_Computer =
-    Computer $ SearchDepth defaultSearchDepth
+    -- Computer $ SearchDepth SearchDepth_1
+    Computer RandomPick
 
 
 defaultPlayerType_Person :: PlayerType
 defaultPlayerType_Person =
     Person  
         { suggestionSearchDepth: defaultSearchDepth
-        , isAutoSuggest: false 
+        , isAutoSuggest: true 
         } 
