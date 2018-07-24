@@ -23,18 +23,19 @@ module Display
     where
 
 import Prelude
+
 import Board as B
 import Data.Lazy (Lazy, defer, force)
 import Data.List (List, concatMap, elem, filter, find, nub)
 import Data.Maybe (Maybe(..), fromJust)
 import Disk (Color(..), toggleColor)
 import DisplayConstants as DC
-import GameState (MidGameState(..), EndedGameState(..), Tagged_GameState(..), EndStatus(..), MidStatus(..), Winner(..), board_FromTaggedGameState, mbNextMoveColor_FromTaggedGameState, nextMoves_FromTaggedGameState, isEndedGameState, winner) 
+import GameState (MidGameState(..), EndedGameState(..), Tagged_GameState(..), EndStatus(..), MidStatus(..), Winner(..), board_FromTaggedGameState, mbNextMoveColor_FromTaggedGameState, nextMoves_FromTaggedGameState, isEndedGameState, winner)
 import Partial.Unsafe (unsafePartial)
+import Player (Player(..), PlayerType(..), Players)
 import Position (Position)
+import Sequencer (unsafe_CurrentPlayer, unsafe_OpponentPlayer)
 import Type.Data.Boolean (kind Boolean)
-import Player (Player(..), PlayerType(..), Players, isComputerVsComputer)
-import Sequencer (currentPlayer, opponentPlayer)
  
 -- todo Arrays vs Lists ???
 
@@ -240,14 +241,14 @@ movesAndOutflanksForFilled position allMoves =
         }        
 
 
-status :: Boolean -> Players -> Tagged_GameState -> String
-status isGameStarted players taggedGameState =
+status :: Boolean -> Boolean -> Players -> Tagged_GameState -> String
+status isImminentGameStart isGameStarted players taggedGameState =
     let
         lzCurrentPlayer' :: Lazy Player
-        lzCurrentPlayer' = defer $ \_ -> unsafePartial fromJust $ currentPlayer players taggedGameState 
+        lzCurrentPlayer' = defer $ \_ -> unsafe_CurrentPlayer players taggedGameState 
 
         lzOpponentPlayer' :: Lazy Player
-        lzOpponentPlayer' = defer $ \_ -> unsafePartial fromJust $ opponentPlayer players taggedGameState    
+        lzOpponentPlayer' = defer $ \_ -> unsafe_OpponentPlayer players taggedGameState    
 
         lzFirstMoveStatus :: Player -> Lazy String
         lzFirstMoveStatus player = defer $ \_ -> playerStatus player <> " to move first"  
@@ -255,16 +256,19 @@ status isGameStarted players taggedGameState =
         lzNextMoveStatus :: Player -> Lazy String
         lzNextMoveStatus player = defer $ \_ -> playerStatus player <> " to move next"                                                        
     in
-        case taggedGameState of
-            Tagged_StartGameState _ -> force $ lzFirstMoveStatus $ force lzCurrentPlayer'
+        if isImminentGameStart || isGameStarted then
+            case taggedGameState of
+                Tagged_StartGameState _ -> force $ lzFirstMoveStatus $ force lzCurrentPlayer'
 
-            Tagged_MidGameState (MidGameState rec) ->
-                case rec.status of
-                    Normal -> force $ lzNextMoveStatus $ force lzCurrentPlayer'                       
-                    ForfeitTurn_Rule2 ->  (force $ lzNextMoveStatus $ force lzCurrentPlayer') <> " (" <> (playerStatus $ force lzOpponentPlayer') <> " forfeits turn)"     
-                    TransferDisk_Rule9 -> "TRANSFER UNUSED-DISK, " <> (force $ lzNextMoveStatus $ force lzCurrentPlayer')  
+                Tagged_MidGameState (MidGameState rec) ->
+                    case rec.status of
+                        Normal -> force $ lzNextMoveStatus $ force lzCurrentPlayer'                       
+                        ForfeitTurn_Rule2 ->  (force $ lzNextMoveStatus $ force lzCurrentPlayer') <> " (" <> (playerStatus $ force lzOpponentPlayer') <> " forfeits turn)"     
+                        TransferDisk_Rule9 -> "TRANSFER UNUSED-DISK, " <> (force $ lzNextMoveStatus $ force lzCurrentPlayer')  
 
-            Tagged_EndedGameState x -> gameSummaryDisplay x
+                Tagged_EndedGameState x -> gameSummaryDisplay x
+        else
+            ""
 
 
 playerStatus :: Player -> String

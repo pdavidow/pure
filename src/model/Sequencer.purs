@@ -3,7 +3,9 @@ module Sequencer
     , advanceHistory
     , mbSuggestedMove
     , currentPlayer
+    , unsafe_CurrentPlayer
     , opponentPlayer
+    , unsafe_OpponentPlayer
     )
     where 
 
@@ -34,11 +36,21 @@ currentPlayer players taggedState =
     mbNextMoveColor_FromTaggedGameState taggedState
 
 
+unsafe_CurrentPlayer :: Players -> Tagged_GameState -> Player
+unsafe_CurrentPlayer players taggedState =
+    unsafePartial fromJust $ currentPlayer players taggedState
+
+
 opponentPlayer :: Players -> Tagged_GameState -> Maybe Player
 opponentPlayer players taggedState =
     (\x -> playerColored players $ toggleColor x) 
     <$> 
     mbNextMoveColor_FromTaggedGameState taggedState
+
+
+unsafe_OpponentPlayer :: Players -> Tagged_GameState -> Player
+unsafe_OpponentPlayer players taggedState =
+    unsafePartial fromJust $ opponentPlayer players taggedState
 
 
 moveSequence :: forall eff. Players -> GameHistory -> Eff (console :: CONSOLE, random :: RANDOM | eff) GameHistory
@@ -55,7 +67,7 @@ moveSequence' count players history = do
 
         else do
             let taggedGameState = NE.last history
-            let (Player color playerType) = unsafePartial fromJust $ currentPlayer players taggedGameState 
+            let (Player color playerType) = unsafe_CurrentPlayer players taggedGameState 
 
             mbMove <- case playerType of
                 Person _ -> do
@@ -103,7 +115,7 @@ mbSuggestedMove :: Players -> GameHistory -> Maybe Move
 mbSuggestedMove players history =
     let 
         taggedState = NE.last history
-        (Player color playerType) = unsafePartial fromJust $ currentPlayer players taggedState
+        (Player color playerType) = unsafe_CurrentPlayer players taggedState
     in
         case playerType of
             Person rec ->

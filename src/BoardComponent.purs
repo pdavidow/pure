@@ -23,6 +23,7 @@ import DOM.HTML.Indexed.InputType as DOMT
 import Data.List (List(Nil), elem)
 import Data.List.NonEmpty as NE
 import Data.Maybe (Maybe(..), fromJust, isJust)
+import Data.Monoid (guard)
 import Disk (Color(..), toggleColor)
 import Display (Filled_NotStartedGame_DisplaySquare(..), Move_DisplaySquare(..), FilledSelf_DisplaySquare(..), FilledOpponent_DisplaySquare(..), Filled_EndedGame_DisplaySquare(..), Tagged_DisplaySquare(..), toDisplaySquare, toPosition, placedDisksStatus, status, potentialDiskClassesForColor, flipDiskClassesForColor, gameOver_Emphasis, placedDiskClassesForColor, unusedDiskClassesForColor, isActiveClass_Tag, nameForStartRestartButton)
 import DisplayConstants as DC
@@ -37,11 +38,10 @@ import Lib (setCssProp, haskellRange)
 import Partial.Unsafe (unsafePartial)
 import Player (Player(..), Players, isPlayer_Computer, isPlayer_Person, isComputerVsComputer)
 import Position (Position)
-import Sequencer (moveSequence, advanceHistory, mbSuggestedMove)
+import Sequencer (moveSequence, advanceHistory, mbSuggestedMove, unsafe_CurrentPlayer)
 import SettingsDefaults as DFLT
 import Type.Data.Boolean (kind Boolean)
 import UnusedDiskCount (UnusedDiskCounts, maxDiskCount)
-import Data.Monoid (guard)
 
 data StartRestart 
     = NotStarted
@@ -152,9 +152,11 @@ component =
 -- todo -- also new game, quit  
     render :: State -> H.ComponentHTML Query
     render state =
-        HH.div
-            [ HE.onMouseUp $ HE.input_ $ MouseUp_Anywhere 
-            ]           
+        HH.div 
+            ( guard (isPlayer_Person $ unsafe_CurrentPlayer state.players gameState)
+                [ HE.onMouseUp $ HE.input_ $ MouseUp_Anywhere 
+                ] 
+            )        
             [ HH.span
                 [ HP.classes [ HH.ClassName "ml3 roboto" ]
                 ]    
@@ -246,7 +248,7 @@ component =
                 , HH.div
                     [ HP.classes [ HH.ClassName "mt2 f3 lh-copy b" ]
                     ] 
-                    [ HH.text $ status state.isGameStarted state.players gameState ]  
+                    [ HH.text $ status state.isImminentGameStart state.isGameStarted state.players gameState ]  
                 ]   
             , HH.div -- todo refactor into separate module
                 [ HP.classes [ HH.ClassName $ "modal" <> (isActiveClass_Tag state.isActive_SettingsModal)  ]
@@ -391,10 +393,6 @@ component =
         unusedDiskCounts :: UnusedDiskCounts
         unusedDiskCounts =
             unusedDiskCounts_FromTaggedGameState gameState
-            -- if state.isImminentGameStart || state.isGameStarted then
-            --     unusedDiskCounts_FromTaggedGameState gameState
-            -- else
-            --     makeBlackWhite 0 0
 
 
         mbMoveColor :: Maybe Color
@@ -461,11 +459,13 @@ component =
                         [ HP.classes 
                             [ HH.ClassName $ DC.fillableGridItem <> squareProps__Move_DisplaySquare x ]                       
                         , HE.onMouseEnter $ HE.input_ $ MouseEnter_MoveSquare x
-                        , HE.onMouseLeave $ HE.input_ $ MouseLeave_MoveSquare
-                        , HE.onMouseDown $ HE.input_ $ MouseDown_MoveSquare x
-                        , HE.onMouseUp $ HE.input_ $ MouseUp_MoveSquare x                          
+                        , HE.onMouseLeave $ HE.input_ $ MouseLeave_MoveSquare                      
                         , HE.onDragStart $ HE.input $ PreventDefault <<< toEvent
                         ]
+                        <> guard (isPlayer_Person $ unsafe_CurrentPlayer state.players gameState)
+                        [ HE.onMouseDown $ HE.input_ $ MouseDown_MoveSquare x
+                        , HE.onMouseUp $ HE.input_ $ MouseUp_MoveSquare x                                
+                        ] 
 
                     Tagged_FilledSelf_DisplaySquare _ ->
                         [ HP.classes 
