@@ -1,6 +1,5 @@
 module BoardComponent
-    ( Query
-    , State
+    ( State
     , Effects
     , Status_StartRestart(..)
     , component
@@ -8,9 +7,11 @@ module BoardComponent
     where
 
 import Prelude
+
 import BlackWhite (getItemBlack, getItemWhite, getItemColored, setItemColored)
 import Board (Move, boardElems, movePosition)
 import BoardSize (boardSize)
+import ConfirmDialog (confirmDialog)
 import Control.Monad.Aff (Aff)
 import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Console (CONSOLE)
@@ -41,34 +42,13 @@ import Sequencer (moveSequence, advanceHistory, mbSuggestedMove, mbCurrentPlayer
 import SettingsDefaults as DFLT
 import Type.Data.Boolean (kind Boolean)
 import UnusedDiskCount (UnusedDiskCounts, maxDiskCount)
+import Query (Query(..))
 
 data Status_StartRestart 
     = NotStarted
     | Started 
     | AwaitingRestart
 
-data Query a
-  = MouseEnter_StartStopButton a
-  | MouseLeave_StartStopButton a
-  | MouseEnter_MoveSquare Move_DisplaySquare a
-  | MouseLeave_MoveSquare a
-  | MouseDown_MoveSquare Move_DisplaySquare a
-  | MouseUp_Anywhere a
-  | MouseUp_MoveSquare Move_DisplaySquare a  
-  | MouseEnter_FilledOpponentSquare FilledOpponent_DisplaySquare a
-  | MouseLeave_FilledOpponentSquare a  
-  | Click_FlipCounts a
-  | Click_Open_Settings a
-  | Click_Close_Settings a  
-  | Click_Settings Color a
-  | Click_Settings_Computer Color a
-  | Click_Settings_Person Color a  
-  | Click_GameStartRestart a
-  | Click_ConfirmRestart a
-  | Click_CancelRestart a 
-  | Click_ComputerProceed a
-  | PreventDefault Event a
-  | Undo a
 
 type State = 
     { players :: Players
@@ -79,9 +59,11 @@ type State =
     , outflanks_FocusedMoveSquare :: List Position 
     , outflanks_FocusedFilledOpponentSquare :: List Position
     , mb_SuggestedMove :: Maybe Move
-    , isShowFlipCounts :: Boolean
+    , isShow_FlipCounts :: Boolean
+    , isShow_ResetToDefaultsModal :: Boolean
     , isActive_SettingsModal :: Boolean
     , isImminentGameStart :: Boolean
+    , isAwaitingConfirm_ResetSettingsToDefaults :: Boolean
     , status_StartRestart :: Status_StartRestart
     , activeSettingsColor :: Color
     }
@@ -112,9 +94,11 @@ component =
         , moves_FocusedFilledOpponentSquare: Nil        
         , outflanks_FocusedFilledOpponentSquare: Nil
         , mb_SuggestedMove: mb_SuggestedMove
-        , isShowFlipCounts: false
+        , isShow_FlipCounts: false
+        , isShow_ResetToDefaultsModal: false
         , isActive_SettingsModal: false
         , isImminentGameStart: false
+        , isAwaitingConfirm_ResetSettingsToDefaults: false
         , status_StartRestart: NotStarted
         , activeSettingsColor: Black           
         }
@@ -318,42 +302,19 @@ component =
                                 ]                                                                
                             ]
                         ]
-                    ]
-                ]
-            , HH.div
-                [ HP.classes [ HH.ClassName $ "modal" <> (isActiveClass_Tag isShow_RestartModal)  ]
-                ]
-                [ HH.div
-                    [ HP.classes [ HH.ClassName "modal-background" ]
-                    ]
-                    []
-                , HH.div
-                    [ HP.classes [ HH.ClassName "modal-card" ]
-                    ]
-                    [ HH.header
-                        [ HP.classes [ HH.ClassName "modal-card-head" ]
-                        ]
-                        [ HH.p
-                            [ HP.classes [ HH.ClassName "modal-card-title" ]
-                            ]
-                            [ HH.text "Confirm: New game?"]                        
-                        ]
                     , HH.footer 
                         [ HP.classes [ HH.ClassName "modal-card-foot" ]
                         ]
                         [ HH.button
-                            [ HP.classes [ HH.ClassName "button is-success" ]
-                            , HE.onClick (HE.input_ Click_ConfirmRestart)
+                            [ HP.classes [ HH.ClassName "button is-warning" ]
+                            , HE.onClick (HE.input_ Click_ResetSettingsToDefaults)
                             ]
-                            [ HH.text "Ok" ]                        
-                        , HH.button
-                            [ HP.classes [ HH.ClassName "button" ]
-                            , HE.onClick (HE.input_ Click_CancelRestart)
-                            ]
-                            [ HH.text "Cancel" ]                          
+                            [ HH.text "Reset to Defaults" ]  
                         ]
                     ]
                 ]
+            , confirmDialog isShow_RestartModal "New game" Click_Confirm_Restart Click_Cancel_Restart
+            , confirmDialog isShow_ResetToDefaultsModal "Reset to Defaults" Click_Confirm_ResetToDefaults Click_Cancel_ResetToDefaults
             ]
         where 
 
@@ -372,6 +333,11 @@ component =
         isShow_RestartModal :: Boolean
         isShow_RestartModal =
             state.status_StartRestart == AwaitingRestart
+
+
+        isShow_ResetToDefaultsModal :: Boolean
+        isShow_ResetToDefaultsModal =
+            state.isShow_ResetToDefaultsModal
 
 
         playerForActiveSetting :: Player
@@ -423,7 +389,7 @@ component =
                                 DC.defaultSquareColor <> 
                                 DC.squareBorder_Default
                             ]
-                        , HE.onDragStart $ HE.input $ PreventDefault <<< toEvent
+                        , HE.onDragStart $ HE.input $ PreventDefault <<< toEvent 
                         ]                    
 
                     Tagged_Filled_NotStartedGame_DisplaySquare _ -> 
@@ -604,7 +570,7 @@ component =
             diskChildren =
                 let
                     mbFlipCount = 
-                        if state.isShowFlipCounts then
+                        if state.isShow_FlipCounts then
                             case taggedDisplaySquare of 
                                 Tagged_Empty_NotStartedGame_DisplaySquare _                                -> Nothing
                                 Tagged_Filled_NotStartedGame_DisplaySquare _                               -> Nothing
@@ -750,9 +716,9 @@ component =
             pure next
 
         Click_FlipCounts next -> do
-            isShowFlipCounts <- H.gets _.isShowFlipCounts  
+            isShow_FlipCounts <- H.gets _.isShow_FlipCounts  
             H.modify (_ 
-                { isShowFlipCounts = not isShowFlipCounts
+                { isShow_FlipCounts = not isShow_FlipCounts
                 }
             )
             pure next
@@ -832,14 +798,14 @@ component =
                     )
                     pure next
 
-        Click_CancelRestart next -> do
+        Click_Cancel_Restart next -> do
             H.modify (_ 
                 { status_StartRestart = Started
                 }
             )         
             pure next
 
-        Click_ConfirmRestart next -> do 
+        Click_Confirm_Restart next -> do 
             -- Keep player settings
 
             players <- H.gets _.players 
@@ -852,3 +818,27 @@ component =
                 }
             )                    
             pure next
+
+        Click_ResetSettingsToDefaults next -> do
+            H.modify (_ 
+                { isShow_ResetToDefaultsModal = true 
+                }
+            )                
+            pure next
+
+        Click_Confirm_ResetToDefaults next -> do
+            H.modify (_ 
+                { players = DFLT.defaultPlayers 
+                , isShow_ResetToDefaultsModal = false
+                }
+            )                
+            pure next
+
+        Click_Cancel_ResetToDefaults next -> do
+            H.modify (_ 
+                { isShow_ResetToDefaultsModal = false
+                }
+            )                
+            pure next            
+
+            
