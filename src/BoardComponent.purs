@@ -64,8 +64,8 @@ data Query a
   | Click_Settings_Computer Color a
   | Click_Settings_Person Color a  
   | Click_GameStartRestart a
-  | Click_NewGame a
-  | Click_Cancel_NewGameConfirm a 
+  | Click_ConfirmRestart a
+  | Click_CancelRestart a 
   | Click_ComputerProceed a
   | PreventDefault Event a
   | Undo a
@@ -84,10 +84,6 @@ type State =
     , isImminentGameStart :: Boolean
     , status_StartRestart :: Status_StartRestart
     , activeSettingsColor :: Color
-    }
-
-type TempSettingsState =
-    { players :: Players
     }
 
 type Effects eff = ( dom :: DOM, console :: CONSOLE, random :: RANDOM | eff )
@@ -325,7 +321,7 @@ component =
                     ]
                 ]
             , HH.div
-                [ HP.classes [ HH.ClassName $ "modal" <> (isActiveClass_Tag isShow_StartRestartModal)  ]
+                [ HP.classes [ HH.ClassName $ "modal" <> (isActiveClass_Tag isShow_RestartModal)  ]
                 ]
                 [ HH.div
                     [ HP.classes [ HH.ClassName "modal-background" ]
@@ -347,12 +343,12 @@ component =
                         ]
                         [ HH.button
                             [ HP.classes [ HH.ClassName "button is-success" ]
-                            , HE.onClick (HE.input_ Click_NewGame)
+                            , HE.onClick (HE.input_ Click_ConfirmRestart)
                             ]
                             [ HH.text "Ok" ]                        
                         , HH.button
                             [ HP.classes [ HH.ClassName "button" ]
-                            , HE.onClick (HE.input_ Click_Cancel_NewGameConfirm)
+                            , HE.onClick (HE.input_ Click_CancelRestart)
                             ]
                             [ HH.text "Cancel" ]                          
                         ]
@@ -373,8 +369,8 @@ component =
                 Nothing -> false
 
 
-        isShow_StartRestartModal :: Boolean
-        isShow_StartRestartModal =
+        isShow_RestartModal :: Boolean
+        isShow_RestartModal =
             state.status_StartRestart == AwaitingRestart
 
 
@@ -836,13 +832,23 @@ component =
                     )
                     pure next
 
-        Click_Cancel_NewGameConfirm next -> do
+        Click_CancelRestart next -> do
             H.modify (_ 
                 { status_StartRestart = Started
                 }
             )         
             pure next
 
-        Click_NewGame next -> do 
-            H.put initialState
+        Click_ConfirmRestart next -> do 
+            -- Keep player settings
+
+            players <- H.gets _.players 
+            activeSettingsColor <- H.gets _.activeSettingsColor 
+
+            H.put initialState   
+            H.modify (_ 
+                { players = players
+                , activeSettingsColor = activeSettingsColor
+                }
+            )                    
             pure next
