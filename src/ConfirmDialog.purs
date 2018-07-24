@@ -1,5 +1,5 @@
 module ConfirmDialog
-    (confirmDialog)
+    ( confirmDialog )
     where
       
 import Prelude
@@ -11,8 +11,8 @@ import Halogen.HTML.Properties as HP
 import Type.Data.Boolean (kind Boolean)
 import Query (Query)
 
--- todo
---confirmDialog :: forall t a. Boolean -> String -> Query a -> Query a -> H.ComponentHTML Query
+
+confirmDialog :: Boolean -> String -> H.Action Query -> H.Action Query -> H.ComponentHTML Query -- https://functionalprogramming.slack.com/archives/C717K38CE/p1532459248000151
 confirmDialog isActive operationName okAction cancelAction =
     HH.div
         [ HP.classes [ HH.ClassName $ "modal" <> (isActiveClass_Tag isActive)  ]
