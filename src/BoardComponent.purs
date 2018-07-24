@@ -2,13 +2,12 @@ module BoardComponent
     ( Query
     , State
     , Effects
-    , StartRestart(..)
+    , Status_StartRestart(..)
     , component
     )
     where
 
 import Prelude
-
 import BlackWhite (getItemBlack, getItemWhite, getItemColored, setItemColored)
 import Board (Move, boardElems, movePosition)
 import BoardSize (boardSize)
@@ -38,12 +37,12 @@ import Lib (setCssProp, haskellRange)
 import Partial.Unsafe (unsafePartial)
 import Player (Player(..), Players, isPlayer_Computer, isPlayer_Person, isComputerVsComputer)
 import Position (Position)
-import Sequencer (moveSequence, advanceHistory, mbSuggestedMove, unsafe_CurrentPlayer)
+import Sequencer (moveSequence, advanceHistory, mbSuggestedMove, mbCurrentPlayer, unsafe_CurrentPlayer)
 import SettingsDefaults as DFLT
 import Type.Data.Boolean (kind Boolean)
 import UnusedDiskCount (UnusedDiskCounts, maxDiskCount)
 
-data StartRestart 
+data Status_StartRestart 
     = NotStarted
     | Started 
     | AwaitingRestart
@@ -66,11 +65,10 @@ data Query a
   | Click_Settings_Person Color a  
   | Click_GameStartRestart a
   | Click_NewGame a
-  | Click_Close_NewGameConfirm a 
+  | Click_Cancel_NewGameConfirm a 
   | Click_ComputerProceed a
   | PreventDefault Event a
   | Undo a
-  | NullOp a
 
 type State = 
     { players :: Players
@@ -84,9 +82,7 @@ type State =
     , isShowFlipCounts :: Boolean
     , isActive_SettingsModal :: Boolean
     , isImminentGameStart :: Boolean
-    , startRestartStatus :: StartRestart
-    , isGameStarted :: Boolean
-    , isAwaitingRestartConfirm :: Boolean -- todo delete redundant unused...
+    , status_StartRestart :: Status_StartRestart
     , activeSettingsColor :: Color
     }
 
@@ -97,7 +93,7 @@ type TempSettingsState =
 type Effects eff = ( dom :: DOM, console :: CONSOLE, random :: RANDOM | eff )
 
 
-derive instance eqStartRestart :: Eq StartRestart   
+derive instance eqStartRestart :: Eq Status_StartRestart   
 
 
 component :: forall eff. H.Component HH.HTML Query Unit Void (Aff (Effects eff))
@@ -123,9 +119,7 @@ component =
         , isShowFlipCounts: false
         , isActive_SettingsModal: false
         , isImminentGameStart: false
-        , startRestartStatus: NotStarted
-        , isGameStarted: false
-        , isAwaitingRestartConfirm: false
+        , status_StartRestart: NotStarted
         , activeSettingsColor: Black           
         }
         where
@@ -149,11 +143,10 @@ component =
         NE.last history
 
 
--- todo -- also new game, quit  
     render :: State -> H.ComponentHTML Query
     render state =
         HH.div 
-            ( guard (isPlayer_Person $ unsafe_CurrentPlayer state.players gameState)
+            ( guard isEvent_MouseUp_Anywhere
                 [ HE.onMouseUp $ HE.input_ $ MouseUp_Anywhere 
                 ] 
             )        
@@ -166,12 +159,12 @@ component =
                     [ HH.text "OTHELLO" ] 
                 , HH.button
                     [ HP.classes [ HH.ClassName "ml3 button is-small is-inverted is-outlined" ]
-                    , HP.disabled $ (state.isGameStarted && isStartGameState gameState)
+                    , HP.disabled $ (isGameStarted && isStartGameState gameState)
                     , HE.onMouseEnter $ HE.input_ $ MouseEnter_StartStopButton
                     , HE.onMouseLeave $ HE.input_ $ MouseLeave_StartStopButton                    
                     , HE.onClick $ HE.input_ Click_GameStartRestart
                     ] 
-                    [ HH.text $ nameForStartRestartButton state.isGameStarted state.players]
+                    [ HH.text $ nameForStartRestartButton isGameStarted state.players]
                 , HH.a
                     [ HP.classes [ HH.ClassName "ml3" ] -- button modal-button
                     --, HP.prop (HH.PropName "data-target") DC.modalSettingsId 
@@ -227,15 +220,15 @@ component =
                     , HH.button
                         [ HP.classes [ HH.ClassName "ml4" ]
                         , HE.onClick $ HE.input_ Click_FlipCounts
-                        , HP.disabled $ not state.isGameStarted
+                        , HP.disabled $ not isGameStarted
                         ]
                         [ HH.text "Flip Counts" ]   
                     ]
                     <> 
-                    guard (isComputerVsComputer state.players) [ HH.button -- https://github.com/slamdata/purescript-halogen/issues/483
+                    guard (isComputerVsComputer state.players) [ HH.button
                         [ HP.classes [ HH.ClassName "ml4" ]
                         , HE.onClick $ HE.input_ Click_ComputerProceed
-                        , HP.disabled $ not state.isGameStarted
+                        , HP.disabled $ not isGameStarted
                         ]
                         [ HH.text "Computer Proceed" ]  
                     ]  
@@ -243,12 +236,12 @@ component =
                     [ HH.span
                         [ HP.classes [ HH.ClassName $ "ml4 " <> gameOver_Emphasis gameState ] 
                         ]
-                        [ HH.text $ placedDisksStatus state.isGameStarted gameState]     
+                        [ HH.text $ placedDisksStatus isGameStarted gameState]     
                     ]                               
                 , HH.div
                     [ HP.classes [ HH.ClassName "mt2 f3 lh-copy b" ]
                     ] 
-                    [ HH.text $ status state.isImminentGameStart state.isGameStarted state.players gameState ]  
+                    [ HH.text $ status state.isImminentGameStart isGameStarted state.players gameState ]  
                 ]   
             , HH.div -- todo refactor into separate module
                 [ HP.classes [ HH.ClassName $ "modal" <> (isActiveClass_Tag state.isActive_SettingsModal)  ]
@@ -359,7 +352,7 @@ component =
                             [ HH.text "Ok" ]                        
                         , HH.button
                             [ HP.classes [ HH.ClassName "button" ]
-                            , HE.onClick (HE.input_ Click_Close_NewGameConfirm)
+                            , HE.onClick (HE.input_ Click_Cancel_NewGameConfirm)
                             ]
                             [ HH.text "Cancel" ]                          
                         ]
@@ -368,21 +361,21 @@ component =
             ]
         where 
 
+        isGameStarted :: Boolean
+        isGameStarted =
+            state.status_StartRestart /= NotStarted
+
+
+        isEvent_MouseUp_Anywhere :: Boolean
+        isEvent_MouseUp_Anywhere =
+            case mbCurrentPlayer state.players gameState of
+                Just player -> isPlayer_Person player
+                Nothing -> false
+
+
         isShow_StartRestartModal :: Boolean
         isShow_StartRestartModal =
-            (state.startRestartStatus == AwaitingRestart) && 
-                state.isAwaitingRestartConfirm
-                --(not $ isStartGameState gameState) 
-                    -- todo del && (not $ isCurrentPlayer_Computer state.players gameState)
-
-
-        -- todo unused?
-        proceedOnGameStart :: forall a. (a -> Maybe (Query Unit)) -> a -> Maybe (Query Unit)
-        proceedOnGameStart x =
-            if state.isGameStarted then
-                x
-            else
-                HE.input_ NullOp
+            state.status_StartRestart == AwaitingRestart
 
 
         playerForActiveSetting :: Player
@@ -408,7 +401,7 @@ component =
         squares :: Array Tagged_DisplaySquare
         squares =
             (boardElems $ board_FromTaggedGameState gameState)
-                # map (toDisplaySquare gameState state.isGameStarted)  
+                # map (toDisplaySquare gameState isGameStarted)  
 
 
         moves :: NextMoves
@@ -732,41 +725,31 @@ component =
             pure next
 
         Click_GameStartRestart next -> do    
-            startRestartStatus <-  H.gets _.startRestartStatus 
-
-            if startRestartStatus == NotStarted
+            status_StartRestart <-  H.gets _.status_StartRestart 
+            if status_StartRestart == NotStarted
                 then do 
-                    H.modify (_ 
-                        { startRestartStatus = Started
-                        }
-                    )                
-                else if startRestartStatus == Started   
+                    H.modify (_ { status_StartRestart = Started })                
+                else if status_StartRestart == Started   
                     then do
-                        H.modify (_ 
-                            { startRestartStatus = AwaitingRestart
-                            }
-                        )
+                        H.modify (_ { status_StartRestart = AwaitingRestart })
                     else do
                         pure unit
 
-            gameHistory <- H.gets _.gameHistory             
-            players <- H.gets _.players   
-            gameHistory' <- liftEff $ moveSequence players gameHistory
+            status_StartRestart' <-  H.gets _.status_StartRestart
+            if status_StartRestart' == Started
+                then do 
+                    gameHistory <- H.gets _.gameHistory             
+                    players <- H.gets _.players   
+                    gameHistory' <- liftEff $ moveSequence players gameHistory
 
-            H.modify (_ 
-                { isImminentGameStart = false
-                , isGameStarted = true
-                , gameHistory = gameHistory'
-                , mb_SuggestedMove = mbSuggestedMove players gameHistory'
-                }
-            )            
-            
-            let gameState = NE.last gameHistory' 
-            when (not $ isStartGameState gameState) do
-                H.modify (_ 
-                    { isAwaitingRestartConfirm = true
-                    }
-                )   
+                    H.modify (_ 
+                        { isImminentGameStart = false
+                        , gameHistory = gameHistory'
+                        , mb_SuggestedMove = mbSuggestedMove players gameHistory'
+                        }
+                    )  
+                else do
+                    pure unit                               
 
             pure next
 
@@ -853,16 +836,13 @@ component =
                     )
                     pure next
 
-        Click_Close_NewGameConfirm next -> do
+        Click_Cancel_NewGameConfirm next -> do
             H.modify (_ 
-                { isAwaitingRestartConfirm = false
+                { status_StartRestart = Started
                 }
             )         
             pure next
 
         Click_NewGame next -> do 
             H.put initialState
-            pure next
-
-        NullOp next -> do
             pure next

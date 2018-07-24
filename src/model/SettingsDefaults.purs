@@ -32,5 +32,5 @@ defaultPlayerType_Person :: PlayerType
 defaultPlayerType_Person =
     Person  
         { suggestionSearchDepth: defaultSearchDepth
-        , isAutoSuggest: true 
+        , isAutoSuggest: false 
         } 

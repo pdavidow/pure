@@ -35,10 +35,7 @@ import Partial.Unsafe (unsafePartial)
 import Player (Player(..), PlayerType(..), Players)
 import Position (Position)
 import Sequencer (unsafe_CurrentPlayer, unsafe_OpponentPlayer)
-import Type.Data.Boolean (kind Boolean)
- 
 -- todo Arrays vs Lists ???
-
 -- todo: Use Record v1.0.0 `merge` for base filled of {color, flipCount}
 
 

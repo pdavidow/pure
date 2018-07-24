@@ -2,9 +2,9 @@ module Sequencer
     ( moveSequence
     , advanceHistory
     , mbSuggestedMove
-    , currentPlayer
+    , mbCurrentPlayer
     , unsafe_CurrentPlayer
-    , opponentPlayer
+    , mbOpponentPlayer
     , unsafe_OpponentPlayer
     )
     where 
@@ -29,28 +29,28 @@ import Logger (logMoveErrors)
 import Disk (toggleColor)
 
 
-currentPlayer :: Players -> Tagged_GameState -> Maybe Player
-currentPlayer players taggedState =
+mbCurrentPlayer :: Players -> Tagged_GameState -> Maybe Player
+mbCurrentPlayer players t =
     playerColored players 
-    <$> 
-    mbNextMoveColor_FromTaggedGameState taggedState
+        <$> 
+            mbNextMoveColor_FromTaggedGameState t
 
 
 unsafe_CurrentPlayer :: Players -> Tagged_GameState -> Player
-unsafe_CurrentPlayer players taggedState =
-    unsafePartial fromJust $ currentPlayer players taggedState
+unsafe_CurrentPlayer players t =
+    unsafePartial fromJust $ mbCurrentPlayer players t
 
 
-opponentPlayer :: Players -> Tagged_GameState -> Maybe Player
-opponentPlayer players taggedState =
-    (\x -> playerColored players $ toggleColor x) 
-    <$> 
-    mbNextMoveColor_FromTaggedGameState taggedState
+mbOpponentPlayer :: Players -> Tagged_GameState -> Maybe Player
+mbOpponentPlayer players t =
+    (\c -> playerColored players $ toggleColor c) 
+        <$> 
+            mbNextMoveColor_FromTaggedGameState t
 
 
 unsafe_OpponentPlayer :: Players -> Tagged_GameState -> Player
-unsafe_OpponentPlayer players taggedState =
-    unsafePartial fromJust $ opponentPlayer players taggedState
+unsafe_OpponentPlayer players t =
+    unsafePartial fromJust $ mbOpponentPlayer players t
 
 
 moveSequence :: forall eff. Players -> GameHistory -> Eff (console :: CONSOLE, random :: RANDOM | eff) GameHistory
@@ -113,19 +113,21 @@ advanceHistory' count players history move = do
 
 mbSuggestedMove :: Players -> GameHistory -> Maybe Move
 mbSuggestedMove players history =
-    let 
-        taggedState = NE.last history
-        (Player color playerType) = unsafe_CurrentPlayer players taggedState
+    let
+        taggedGameState = NE.last history
+        mbPlayer = mbCurrentPlayer players taggedGameState
     in
-        case playerType of
-            Person rec ->
-                if rec.isAutoSuggest then
-                    let
-                        taggedState' = setCurrentPlayerColorForSearch taggedState color
-                    in
-                        mbBestNextMove rec.suggestionSearchDepth taggedState'
-                else
-                    Nothing
+        case mbPlayer of
+            Just (Player color playerType) ->
+                case playerType of
+                    Person rec ->
+                        if rec.isAutoSuggest then
+                            mbBestNextMove rec.suggestionSearchDepth $ setCurrentPlayerColorForSearch taggedGameState color
+                        else
+                            Nothing
 
-            Computer _ -> 
-                Nothing                  
+                    Computer _ -> 
+                        Nothing    
+
+            Nothing -> 
+                Nothing
