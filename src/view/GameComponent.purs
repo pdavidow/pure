@@ -15,11 +15,12 @@ import Control.Monad.Eff.Console (CONSOLE)
 import Control.Monad.Eff.Random (RANDOM)
 import DOM (DOM)
 import DOM.Classy.Event (preventDefault)
+import DashboardFooterHTML (dashboardFooter_HTML)
 import DashboardHTML (dashboard_HTML)
 import Data.List (List(Nil))
 import Data.Maybe (Maybe(..))
 import Data.Monoid (guard)
-import Display (Move_DisplaySquare(..), FilledOpponent_DisplaySquare(..), status)
+import Display (Move_DisplaySquare(..), FilledOpponent_DisplaySquare(..))
 import GameHistory (undoHistoryOnce)
 import Halogen as H
 import Halogen.HTML as HH
@@ -36,7 +37,6 @@ import State (State, initialState)
 import StatusStartRestart (Status_StartRestart(..))
 import Type.Data.Boolean (kind Boolean)
 import UnusedDiskHTML (unusedDisk_HTML)
-
 
 type Effects eff = ( dom :: DOM, console :: CONSOLE, random :: RANDOM | eff )   
 
@@ -63,11 +63,8 @@ component =
                 ]
                 [ board_HTML state
                 , unusedDisk_HTML state
-                , dashboard_HTML state                             
-                , HH.div -- todo break out into DashboardFooter_HTML module
-                    [ HP.classes [ HH.ClassName "mt2 f3 lh-copy b" ]
-                    ] 
-                    [ HH.text $ status state.isImminentGameStart (HLPR.isGameStarted state) state.players $ HLPR.gameState state ]  
+                , dashboard_HTML state   
+                , dashboardFooter_HTML state                          
                 ]   
             , settingsModal_HTML state
             , confirmModal_HTML isShow_RestartModal "New game" Click_Confirm_Restart Click_Cancel_Restart
