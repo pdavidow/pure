@@ -1,5 +1,5 @@
-module ConfirmDialog
-    ( confirmDialog )
+module ConfirmModalHTML
+    ( confirmModal_HTML )
     where
       
 import Prelude
@@ -12,8 +12,8 @@ import Type.Data.Boolean (kind Boolean)
 import Query (Query)
 
 
-confirmDialog :: Boolean -> String -> H.Action Query -> H.Action Query -> H.ComponentHTML Query -- https://functionalprogramming.slack.com/archives/C717K38CE/p1532459248000151
-confirmDialog isActive operationName okAction cancelAction =
+confirmModal_HTML :: Boolean -> String -> H.Action Query -> H.Action Query -> H.ComponentHTML Query -- https://functionalprogramming.slack.com/archives/C717K38CE/p1532459248000151
+confirmModal_HTML isActive operationName okAction cancelAction =
     HH.div
         [ HP.classes [ HH.ClassName $ "modal" <> (isActiveClass_Tag isActive)  ]
         ]

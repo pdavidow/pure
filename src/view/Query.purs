@@ -1,5 +1,6 @@
 module Query
-    (Query(..))
+    ( Query(..)
+    )
     where
 
 import Display as DISP

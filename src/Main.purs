@@ -6,7 +6,7 @@ import Halogen.Aff as HA
 import Halogen.VDom.Driver (runUI)   
 import Control.Monad.Eff.Console (CONSOLE)
 import Control.Monad.Eff.Random (RANDOM)
-import BoardComponent (component) 
+import GameComponent (component) 
  
 
 main :: Eff (HA.HalogenEffects (console :: CONSOLE, random :: RANDOM)) Unit

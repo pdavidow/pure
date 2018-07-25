@@ -1,19 +1,14 @@
 module Lib 
     ( haskellRange
     , mapTakeWhile
-    , setCssProp
     , rights
     , lefts
     )
     where
   
 import Prelude
-
-import CSS as CSS
 import Data.Array (range)
 import Data.List (List(..), (:), filter)
-import Halogen as H
-import Halogen.HTML.CSS as HC
 import Data.Either (Either, fromRight, fromLeft, isRight, isLeft)
 import Partial.Unsafe (unsafePartial)
 
@@ -31,11 +26,6 @@ haskellRange start end =
 mapTakeWhile :: forall a b. (a -> b) -> (b -> Boolean) -> List a -> List b
 mapTakeWhile _ _ Nil = Nil
 mapTakeWhile f p (x:xs) = let y = f x in if p y then y : mapTakeWhile f p xs else Nil    
-
-
-setCssProp :: String -> String -> forall t1 t2. H.IProp ( style :: String | t1) t2
-setCssProp key value =
-    HC.style do (CSS.key (CSS.fromString key) value)
 
 
 rights :: forall l r. List (Either l r) -> List r
