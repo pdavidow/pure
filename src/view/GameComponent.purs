@@ -6,7 +6,7 @@ module GameComponent
 
 import Prelude
 
-import BlackWhite (getItemBlack, getItemWhite, setItemColored)
+import BlackWhite (setItemColored)
 import BoardHTML (board_HTML)
 import ConfirmModalHTML (confirmModal_HTML)
 import Control.Monad.Aff (Aff)
@@ -18,16 +18,14 @@ import DOM.Classy.Event (preventDefault)
 import Data.List (List(Nil))
 import Data.Maybe (Maybe(..))
 import Data.Monoid (guard)
-import Disk (Color(..))
+import Disk (Color)
 import Display (Move_DisplaySquare(..), FilledOpponent_DisplaySquare(..), placedDisksStatus, status, gameOver_Emphasis, unusedDiskClassesForColor)
 import GameHistory (undoHistoryOnce)
-import GameState (unusedDiskCounts_FromTaggedGameState)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Helper as HLPR
-import Lib (haskellRange)
 import NavbarHTML (navbar_HTML)
 import Player (Player(..), isPlayer_Person, isComputerVsComputer)
 import Query (Query(..))
@@ -37,8 +35,7 @@ import SettingsModalHTML (settingsModal_HTML)
 import State (State, initialState)
 import StatusStartRestart (Status_StartRestart(..))
 import Type.Data.Boolean (kind Boolean)
-import UnusedDiskCount (UnusedDiskCounts, maxDiskCount)
-import ViewLib (setCssProp)
+import UnusedDiskHTML (unusedDisk_HTML)
 
 
 type Effects eff = ( dom :: DOM, console :: CONSOLE, random :: RANDOM | eff )   
@@ -65,20 +62,7 @@ component =
                 [ HP.classes [ HH.ClassName "ml3" ]  
                 ]
                 [ board_HTML state
-                , HH.div   -- todo break out into UnusedDisk_HTML module                 
-                -- [ HH.div   -- todo break out into UnusedDisk_HTML module          
-                    [ HP.classes [ HH.ClassName "unusedDiskGrids-grid" ]
-                    , setCssProp "--maxUnusedDiskCount" $ show maxDiskCount 
-                    ]  
-                    [ HH.div            
-                        [ HP.classes [ HH.ClassName "unusedDisk-grid" ]
-                        ]
-                        ( map (const $ renderUnusedDisk Black) $ haskellRange 1 $ getItemBlack unusedDiskCounts) -- todo use repeat ?
-                    , HH.div            
-                        [ HP.classes [ HH.ClassName "unusedDisk-grid" ] 
-                        ]                
-                        ( map (const $ renderUnusedDisk White) $ haskellRange 1 $ getItemWhite unusedDiskCounts) -- todo use repeat ? 
-                    ] 
+                , unusedDisk_HTML state
                 , HH.span -- todo break out into Dashboard_HTML module
                     [ HP.classes [ HH.ClassName "mt2" ] -- todo unused controls-grid"
                     ] $
@@ -135,18 +119,6 @@ component =
         isShow_ResetToDefaultsModal :: Boolean
         isShow_ResetToDefaultsModal =
             state.isShow_ResetToDefaultsModal
-
-
-        unusedDiskCounts :: UnusedDiskCounts
-        unusedDiskCounts =
-            unusedDiskCounts_FromTaggedGameState $ HLPR.gameState state
-
-
-        renderUnusedDisk :: Color -> H.ComponentHTML Query
-        renderUnusedDisk color =
-            HH.figure
-                [ HP.classes [ HH.ClassName $ unusedDiskClassesForColor color] ] 
-                []
 
 
     eval :: Query ~> H.ComponentDSL State Query Void (Aff (Effects eff))
