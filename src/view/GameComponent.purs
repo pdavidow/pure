@@ -15,11 +15,11 @@ import Control.Monad.Eff.Console (CONSOLE)
 import Control.Monad.Eff.Random (RANDOM)
 import DOM (DOM)
 import DOM.Classy.Event (preventDefault)
+import DashboardHTML (dashboard_HTML)
 import Data.List (List(Nil))
 import Data.Maybe (Maybe(..))
 import Data.Monoid (guard)
-import Disk (Color)
-import Display (Move_DisplaySquare(..), FilledOpponent_DisplaySquare(..), placedDisksStatus, status, gameOver_Emphasis, unusedDiskClassesForColor)
+import Display (Move_DisplaySquare(..), FilledOpponent_DisplaySquare(..), status)
 import GameHistory (undoHistoryOnce)
 import Halogen as H
 import Halogen.HTML as HH
@@ -27,7 +27,7 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Helper as HLPR
 import NavbarHTML (navbar_HTML)
-import Player (Player(..), isPlayer_Person, isComputerVsComputer)
+import Player (Player(..), isPlayer_Person)
 import Query (Query(..))
 import Sequencer (moveSequence, advanceHistory, mbSuggestedMove, mbCurrentPlayer)
 import SettingsDefaults as DFLT
@@ -63,36 +63,7 @@ component =
                 ]
                 [ board_HTML state
                 , unusedDisk_HTML state
-                , HH.span -- todo break out into Dashboard_HTML module
-                    [ HP.classes [ HH.ClassName "mt2" ] -- todo unused controls-grid"
-                    ] $
-                    [ HH.button
-                        [ HP.classes [ HH.ClassName "" ]
-                        , HP.enabled $ HLPR.isHistoryUndoable state.gameHistory
-                        , HE.onClick $ HE.input_ Undo
-                        ]
-                        [ HH.text "Undo" ] 
-                    , HH.button
-                        [ HP.classes [ HH.ClassName "ml4" ]
-                        , HE.onClick $ HE.input_ Click_FlipCounts
-                        , HP.disabled $ not $ HLPR.isGameStarted state
-                        ]
-                        [ HH.text "Flip Counts" ]   
-                    ]
-                    <> 
-                    guard (isComputerVsComputer state.players) [ HH.button
-                        [ HP.classes [ HH.ClassName "ml4" ]
-                        , HE.onClick $ HE.input_ Click_ComputerProceed
-                        , HP.disabled $ not $ HLPR.isGameStarted state
-                        ]
-                        [ HH.text "Computer Proceed" ]  
-                    ]  
-                    <>
-                    [ HH.span
-                        [ HP.classes [ HH.ClassName $ "ml4 " <> (gameOver_Emphasis $ HLPR.gameState state) ] 
-                        ]
-                        [ HH.text $ placedDisksStatus (HLPR.isGameStarted state) $ HLPR.gameState state]     
-                    ]                               
+                , dashboard_HTML state                             
                 , HH.div -- todo break out into DashboardFooter_HTML module
                     [ HP.classes [ HH.ClassName "mt2 f3 lh-copy b" ]
                     ] 
