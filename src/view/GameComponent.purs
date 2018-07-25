@@ -20,7 +20,7 @@ import Data.Maybe (Maybe(..))
 import Data.Monoid (guard)
 import Disk (Color(..))
 import Display (Move_DisplaySquare(..), FilledOpponent_DisplaySquare(..), placedDisksStatus, status, gameOver_Emphasis, unusedDiskClassesForColor)
-import GameHistory (makeHistory, undoHistoryOnce)
+import GameHistory (undoHistoryOnce)
 import GameState (unusedDiskCounts_FromTaggedGameState)
 import Halogen as H
 import Halogen.HTML as HH
@@ -34,7 +34,7 @@ import Query (Query(..))
 import Sequencer (moveSequence, advanceHistory, mbSuggestedMove, mbCurrentPlayer)
 import SettingsDefaults as DFLT
 import SettingsModalHTML (settingsModal_HTML)
-import State (State)
+import State (State, initialState)
 import StatusStartRestart (Status_StartRestart(..))
 import Type.Data.Boolean (kind Boolean)
 import UnusedDiskCount (UnusedDiskCounts, maxDiskCount)
@@ -54,31 +54,6 @@ component =
         }
     where
  
-    -- todo move to State module
-    initialState :: State 
-    initialState = 
-        { players: players
-        , gameHistory: gameHistory
-        , mb_Focused_MoveSquare: Nothing
-        , mb_MouseDown_MoveSquare: Nothing
-        , outflanks_FocusedMoveSquare: Nil
-        , moves_FocusedFilledOpponentSquare: Nil        
-        , outflanks_FocusedFilledOpponentSquare: Nil
-        , mb_SuggestedMove: mb_SuggestedMove
-        , isShow_FlipCounts: false
-        , isShow_ResetToDefaultsModal: false
-        , isActive_SettingsModal: false
-        , isImminentGameStart: false
-        , isAwaitingConfirm_ResetSettingsToDefaults: false
-        , status_StartRestart: NotStarted
-        , activeSettingsColor: Black           
-        }
-        where 
-            players = DFLT.defaultPlayers  
-            gameHistory = makeHistory 
-            mb_SuggestedMove = mbSuggestedMove players gameHistory
-
-
     render :: State -> H.ComponentHTML Query
     render state =
         HH.div 
