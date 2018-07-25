@@ -27,7 +27,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties.ARIA as HPA
-import Helper (gameState, isGameStarted, isHistoryUndoable)
+import Helper as HLPR
 import Lib (haskellRange)
 import Player (Player(..), isPlayer_Person, isComputerVsComputer)
 import Query (Query(..))
@@ -98,12 +98,12 @@ component =
                     [ HH.text "OTHELLO" ] 
                 , HH.button 
                     [ HP.classes [ HH.ClassName "ml3 button is-small is-inverted is-outlined" ]
-                    , HP.disabled ( isGameStarted state && (isStartGameState $ gameState state) )
+                    , HP.disabled ( HLPR.isGameStarted state && (isStartGameState $ HLPR.gameState state) )
                     , HE.onMouseEnter $ HE.input_ $ MouseEnter_StartStopButton
                     , HE.onMouseLeave $ HE.input_ $ MouseLeave_StartStopButton                    
                     , HE.onClick $ HE.input_ Click_GameStartRestart
                     ] 
-                    [ HH.text $ nameForStartRestartButton (isGameStarted state) state.players]
+                    [ HH.text $ nameForStartRestartButton (HLPR.isGameStarted state) state.players]
                 , HH.a
                     [ HP.classes [ HH.ClassName "ml3" ] -- button modal-button
                     --, HP.prop (HH.PropName "data-target") DC.modalSettingsId 
@@ -149,14 +149,14 @@ component =
                     ] $
                     [ HH.button
                         [ HP.classes [ HH.ClassName "" ]
-                        , HP.enabled $ isHistoryUndoable state.gameHistory
+                        , HP.enabled $ HLPR.isHistoryUndoable state.gameHistory
                         , HE.onClick $ HE.input_ Undo
                         ]
                         [ HH.text "Undo" ] 
                     , HH.button
                         [ HP.classes [ HH.ClassName "ml4" ]
                         , HE.onClick $ HE.input_ Click_FlipCounts
-                        , HP.disabled $ not $ isGameStarted state
+                        , HP.disabled $ not $ HLPR.isGameStarted state
                         ]
                         [ HH.text "Flip Counts" ]   
                     ]
@@ -164,20 +164,20 @@ component =
                     guard (isComputerVsComputer state.players) [ HH.button
                         [ HP.classes [ HH.ClassName "ml4" ]
                         , HE.onClick $ HE.input_ Click_ComputerProceed
-                        , HP.disabled $ not $ isGameStarted state
+                        , HP.disabled $ not $ HLPR.isGameStarted state
                         ]
                         [ HH.text "Computer Proceed" ]  
                     ]  
                     <>
                     [ HH.span
-                        [ HP.classes [ HH.ClassName $ "ml4 " <> (gameOver_Emphasis $ gameState state) ] 
+                        [ HP.classes [ HH.ClassName $ "ml4 " <> (gameOver_Emphasis $ HLPR.gameState state) ] 
                         ]
-                        [ HH.text $ placedDisksStatus (isGameStarted state) $ gameState state]     
+                        [ HH.text $ placedDisksStatus (HLPR.isGameStarted state) $ HLPR.gameState state]     
                     ]                               
                 , HH.div -- todo break out into DashboardFooter_HTML module
                     [ HP.classes [ HH.ClassName "mt2 f3 lh-copy b" ]
                     ] 
-                    [ HH.text $ status state.isImminentGameStart (isGameStarted state) state.players $ gameState state ]  
+                    [ HH.text $ status state.isImminentGameStart (HLPR.isGameStarted state) state.players $ HLPR.gameState state ]  
                 ]   
             , settingsModal_HTML state
             , confirmModal_HTML isShow_RestartModal "New game" Click_Confirm_Restart Click_Cancel_Restart
@@ -187,7 +187,7 @@ component =
 
         isEvent_MouseUp_Anywhere :: Boolean
         isEvent_MouseUp_Anywhere =
-            case mbCurrentPlayer state.players $ gameState state of
+            case mbCurrentPlayer state.players $ HLPR.gameState state of
                 Just player -> isPlayer_Person player
                 Nothing -> false
 
@@ -204,7 +204,7 @@ component =
 
         unusedDiskCounts :: UnusedDiskCounts
         unusedDiskCounts =
-            unusedDiskCounts_FromTaggedGameState $ gameState state
+            unusedDiskCounts_FromTaggedGameState $ HLPR.gameState state
 
 
         renderUnusedDisk :: Color -> H.ComponentHTML Query
