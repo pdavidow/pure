@@ -14,21 +14,21 @@ import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Console (CONSOLE)
 import Control.Monad.Eff.Random (RANDOM)
 import DOM (DOM)
-import DOM.Classy.Event (preventDefault, toEvent)
+import DOM.Classy.Event (preventDefault)
 import Data.List (List(Nil))
 import Data.Maybe (Maybe(..))
 import Data.Monoid (guard)
 import Disk (Color(..))
-import Display (Move_DisplaySquare(..), FilledOpponent_DisplaySquare(..), placedDisksStatus, status, gameOver_Emphasis, unusedDiskClassesForColor, nameForStartRestartButton)
+import Display (Move_DisplaySquare(..), FilledOpponent_DisplaySquare(..), placedDisksStatus, status, gameOver_Emphasis, unusedDiskClassesForColor)
 import GameHistory (makeHistory, undoHistoryOnce)
-import GameState (unusedDiskCounts_FromTaggedGameState, isStartGameState)
+import GameState (unusedDiskCounts_FromTaggedGameState)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Halogen.HTML.Properties.ARIA as HPA
 import Helper as HLPR
 import Lib (haskellRange)
+import NavbarHTML (navbar_HTML)
 import Player (Player(..), isPlayer_Person, isComputerVsComputer)
 import Query (Query(..))
 import Sequencer (moveSequence, advanceHistory, mbSuggestedMove, mbCurrentPlayer)
@@ -39,6 +39,7 @@ import StatusStartRestart (Status_StartRestart(..))
 import Type.Data.Boolean (kind Boolean)
 import UnusedDiskCount (UnusedDiskCounts, maxDiskCount)
 import ViewLib (setCssProp)
+
 
 type Effects eff = ( dom :: DOM, console :: CONSOLE, random :: RANDOM | eff )   
 
@@ -81,51 +82,10 @@ component =
     render :: State -> H.ComponentHTML Query
     render state =
         HH.div 
-            (   if isEvent_MouseUp_Anywhere then 
-                    [ HE.onMouseUp $ HE.input_ $ MouseUp_Anywhere ] 
-                else 
-                    []            
+            ( guard isEvent_MouseUp_Anywhere 
+                [ HE.onMouseUp $ HE.input_ $ MouseUp_Anywhere ]           
             )        
-            [ HH.span -- todo break out into Navbar_HTML module
-                [ HP.classes [ HH.ClassName "ml3 roboto" ]
-                ] 
-
-                --[]
-
-                [ HH.span
-                    [ HP.classes [ HH.ClassName "b" ] -- todo "black bg_white hover_white hover_bg_black" effect doesn't work  
-                    ]    
-                    [ HH.text "OTHELLO" ] 
-                , HH.button 
-                    [ HP.classes [ HH.ClassName "ml3 button is-small is-inverted is-outlined" ]
-                    , HP.disabled ( HLPR.isGameStarted state && (isStartGameState $ HLPR.gameState state) )
-                    , HE.onMouseEnter $ HE.input_ $ MouseEnter_StartStopButton
-                    , HE.onMouseLeave $ HE.input_ $ MouseLeave_StartStopButton                    
-                    , HE.onClick $ HE.input_ Click_GameStartRestart
-                    ] 
-                    [ HH.text $ nameForStartRestartButton (HLPR.isGameStarted state) state.players]
-                , HH.a
-                    [ HP.classes [ HH.ClassName "ml3" ] -- button modal-button
-                    --, HP.prop (HH.PropName "data-target") DC.modalSettingsId 
-                    , HPA.hasPopup "true"
-                    , HE.onClick $ HE.input_ Click_Open_Settings
-                    ]
-                    [ HH.text "Settings" ]                      
-                , HH.a
-                    [ HP.classes [ HH.ClassName "ml3" ]
-                    , HP.target "_blank" -- open in new tab
-                    , HP.href "http://www.boardgamecapital.com/game_rules/othello.pdf"
-                    , HE.onDragStart $ HE.input $ PreventDefault <<< toEvent
-                    ]
-                    [ HH.text "Rules" ]
-                , HH.a
-                    [ HP.classes [ HH.ClassName "ml3" ]
-                    , HP.target "_blank" -- open in new tab
-                    , HP.href "https://github.com/pdavidow/pure"
-                    , HE.onDragStart $ HE.input $ PreventDefault <<< toEvent
-                    ]
-                    [ HH.text "GitHub" ]     
-                ]
+            [ navbar_HTML state
             , HH.div
                 [ HP.classes [ HH.ClassName "ml3" ]  
                 ]
