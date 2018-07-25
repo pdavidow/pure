@@ -8,6 +8,7 @@ import Prelude
 
 import Data.Monoid (guard)
 import Display (gameOver_Emphasis, placedDisksStatus)
+import GameState (isEndedGameState)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -41,7 +42,7 @@ dashboard_HTML state =
         guard (isComputerVsComputer state.players) [ HH.button
             [ HP.classes [ HH.ClassName "ml4" ]
             , HE.onClick $ HE.input_ Click_ComputerProceed
-            , HP.disabled $ not $ HLPR.isGameStarted state
+            , HP.disabled $ isDisabled_ComputerProceed state
             ]
             [ HH.text "Computer Proceed" ]  
         ]  
@@ -51,3 +52,10 @@ dashboard_HTML state =
             ]
             [ HH.text $ placedDisksStatus (HLPR.isGameStarted state) $ HLPR.gameState state]     
         ] 
+
+
+isDisabled_ComputerProceed :: State -> Boolean
+isDisabled_ComputerProceed state =  
+    ( not $ HLPR.isGameStarted state )     
+        || 
+            ( isEndedGameState $ HLPR.gameState state )
