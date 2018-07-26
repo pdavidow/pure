@@ -24,8 +24,8 @@ defaultSearchDepth =
 
 defaultPlayerType_Computer :: PlayerType
 defaultPlayerType_Computer =
-    -- Computer $ SearchDepth SearchDepth_1
-    Computer RandomPick
+    Computer $ SearchDepth SearchDepth_2
+    -- Computer RandomPick
 
 
 defaultPlayerType_Person :: PlayerType
