@@ -22,6 +22,7 @@ module Board
     , filledSquareColor
     , isSquareColored
     , isEmptyAt
+    , isMoveAtPosition
     , boardSquaresColored
     , cornerCounts_BlackWhite
     , filledSquaresAdjacentToEmptyCorners
@@ -37,16 +38,18 @@ module Board
     where
       
 import Prelude
+
+import BlackWhite (BlackWhite(..), makeBlackWhite)
 import BoardSize (boardSize)
-import Data.Array as Array 
+import Data.Array as Array
 import Data.List (List, elem, nub, null, any, concatMap, filter, foldl, fromFoldable, head, tail, takeWhile, length, mapMaybe, range, zipWith)
 import Data.Maybe (Maybe(..), fromJust)
 import Data.Tuple (Tuple(..))
 import Disk (Disk, Color(..), diskColor, flipCount, flipDisk, makeDisk, toggleColor)
-import Lib (haskellRange, mapTakeWhile) 
+import Lib (haskellRange, mapTakeWhile)
 import Partial.Unsafe (unsafePartial)
 import Position (Position, PositionRec, PositionRow(..), adjacentPositions, makeValidPosition, positionRec, radiatingPositionRows)
-import BlackWhite (BlackWhite(..), makeBlackWhite)
+import Type.Data.Boolean (kind Boolean)
 
 
 data EmptySquare = EmptySquare 
@@ -395,6 +398,11 @@ moveColor (Move rec) =
 movePosition :: Move -> Position
 movePosition (Move rec) =
     toPosition <<< Tagged_EmptySquare $ rec.emptySquare
+
+
+isMoveAtPosition :: Position -> Move -> Boolean
+isMoveAtPosition pos move =
+    movePosition move == pos
 
 
 filledPositions :: Color -> Board -> List Position

@@ -27,10 +27,10 @@ import Prelude
 import Board as B
 import Data.Lazy (Lazy, defer, force)
 import Data.List (List, concatMap, elem, filter, find, nub)
-import Data.Maybe (Maybe(..), fromJust)
+import Data.Maybe (Maybe(..), fromJust, fromMaybe)
 import Disk (Color(..), toggleColor)
 import DisplayConstants as DC
-import GameState (MidGameState(..), EndedGameState(..), Tagged_GameState(..), EndStatus(..), MidStatus(..), Winner(..), board_FromTaggedGameState, mbNextMoveColor_FromTaggedGameState, nextMoves_FromTaggedGameState, isEndedGameState, winner)
+import GameState as GS
 import Partial.Unsafe (unsafePartial)
 import Player (Player(..), PlayerType(..), Players)
 import Position (Position)
@@ -52,6 +52,7 @@ newtype Empty_NonMove_DisplaySquare = EmptyNonMove_DisplaySquare
     { position :: Position
     } 
 
+--   Empty_Move_DisplaySquare (more precisely)
 data Move_DisplaySquare = Move_DisplaySquare 
     { move :: B.Move
     , outflanks :: List Position
@@ -61,6 +62,12 @@ data FilledSelf_DisplaySquare = FilledSelf_DisplaySquare
     { position :: Position
     , color :: Color
     , flipCount :: Int
+
+    ---------------------------------
+    -- mutually exclusive (of course)
+    , isPriorMove :: Boolean
+    , isOutflankOfPriorMove :: Boolean
+    ---------------------------------    
     }  
 
 data FilledOpponent_DisplaySquare = FilledOpponent_DisplaySquare 
@@ -69,6 +76,12 @@ data FilledOpponent_DisplaySquare = FilledOpponent_DisplaySquare
     , moves :: List Position    
     , outflanks :: List Position
     , flipCount :: Int    
+
+    ---------------------------------
+    -- mutually exclusive (of course)
+    , isPriorMove :: Boolean
+    , isOutflankOfPriorMove :: Boolean
+    --------------------------------- 
     } 
 
 newtype Empty_EndedGame_DisplaySquare = Empty_EndedGame_DisplaySquare 
@@ -79,7 +92,13 @@ data Filled_EndedGame_DisplaySquare = Filled_EndedGame_DisplaySquare
     { position :: Position
     , color :: Color
     , mbIsWinningColor :: Maybe Boolean
-    , flipCount :: Int    
+    , flipCount :: Int  
+
+    ---------------------------------
+    -- mutually exclusive (of course)
+    , isPriorMove :: Boolean
+    , isOutflankOfPriorMove :: Boolean
+    --------------------------------- 
     }      
 
 data Tagged_DisplaySquare 
@@ -111,23 +130,23 @@ toPosition taggedDisplaySquare =
         Tagged_Filled_EndedGame_DisplaySquare (Filled_EndedGame_DisplaySquare rec)           -> rec.position  
 
 
-toDisplaySquare :: Tagged_GameState -> Boolean -> B.Tagged_Square -> Tagged_DisplaySquare
+toDisplaySquare :: GS.Tagged_GameState -> Boolean -> B.Tagged_Square -> Tagged_DisplaySquare
 toDisplaySquare taggedGameState isGameStarted taggedSquare =
     if isGameStarted then
         case taggedGameState of
-            Tagged_StartGameState _ ->
+            GS.Tagged_StartGameState _ ->
                 toDisplaySquare_PlayGame taggedGameState taggedSquare
 
-            Tagged_MidGameState _ ->
+            GS.Tagged_MidGameState _ ->
                 toDisplaySquare_PlayGame taggedGameState taggedSquare
 
-            Tagged_EndedGameState x -> 
+            GS.Tagged_EndedGameState x -> 
                 toDisplaySquare_EndedGame x taggedSquare
     else
         toDisplaySquare_NotStartedGame taggedGameState taggedSquare
 
 
-toDisplaySquare_NotStartedGame :: Tagged_GameState -> B.Tagged_Square -> Tagged_DisplaySquare
+toDisplaySquare_NotStartedGame :: GS.Tagged_GameState -> B.Tagged_Square -> Tagged_DisplaySquare
 toDisplaySquare_NotStartedGame taggedGameState taggedSquare =
     case taggedSquare of
         B.Tagged_EmptySquare _ -> 
@@ -144,17 +163,17 @@ toDisplaySquare_NotStartedGame taggedGameState taggedSquare =
                     , color: color
                     }
 
-toDisplaySquare_PlayGame :: Tagged_GameState -> B.Tagged_Square -> Tagged_DisplaySquare
+toDisplaySquare_PlayGame :: GS.Tagged_GameState -> B.Tagged_Square -> Tagged_DisplaySquare
 toDisplaySquare_PlayGame taggedGameState taggedSquare =
     let
-        moveColor = unsafePartial fromJust $ mbNextMoveColor_FromTaggedGameState taggedGameState
-        moves = nextMoves_FromTaggedGameState taggedGameState
+        moveColor = unsafePartial fromJust $ GS.mbNextMoveColor_FromTaggedGameState taggedGameState
+        moves = GS.nextMoves_FromTaggedGameState taggedGameState
     in
         case taggedSquare of
             B.Tagged_EmptySquare _ ->
                 let
                     mbMove = moves
-                        # find (\ move -> (==) (B.toPosition taggedSquare) (B.movePosition move))
+                        # find (\ move -> B.isMoveAtPosition (B.toPosition taggedSquare) move)
                 in
                     case mbMove of
                         Nothing -> 
@@ -168,32 +187,40 @@ toDisplaySquare_PlayGame taggedGameState taggedSquare =
                                 , outflanks: B.outflankPositions move
                                 } 
 
-            B.Tagged_FilledSquare x -> 
-                case moveColor == B.filledSquareColor x of
-                    true ->
-                        Tagged_FilledSelf_DisplaySquare $ FilledSelf_DisplaySquare 
-                            { position: B.toPosition taggedSquare
-                            , color: moveColor
-                            , flipCount: B.filledSquareFlipCount x 
-                            }  
-
-                    false ->
-                        let
-                            position = B.toPosition taggedSquare
-                            color = toggleColor moveColor
-                            ({movePositions: movesForFilled, outflankPositions: outflanksForFilled}) = movesAndOutflanksForFilled position moves 
-                        in
-                            Tagged_FilledOpponent_DisplaySquare $ FilledOpponent_DisplaySquare 
+            B.Tagged_FilledSquare x ->  
+                let
+                    position = B.toPosition taggedSquare
+                    isPriorMove = fromMaybe false $ GS.mbIsPriorMoveAtPosition taggedGameState position  
+                    isOutflankOfPriorMove = GS.isOutflankOfPriorMove taggedGameState position  
+                in
+                    case moveColor == B.filledSquareColor x of
+                        true ->
+                            Tagged_FilledSelf_DisplaySquare $ FilledSelf_DisplaySquare 
                                 { position: position
-                                , color: color
-                                , moves: movesForFilled                        
-                                , outflanks: outflanksForFilled
-                                , flipCount: B.filledSquareFlipCount x
+                                , color: moveColor
+                                , flipCount: B.filledSquareFlipCount x 
+                                , isPriorMove: isPriorMove  
+                                , isOutflankOfPriorMove: isOutflankOfPriorMove
                                 }  
+
+                        false ->
+                            let
+                                color = toggleColor moveColor
+                                ({movePositions: movesForFilled, outflankPositions: outflanksForFilled}) = movesAndOutflanksForFilled position moves 
+                            in
+                                Tagged_FilledOpponent_DisplaySquare $ FilledOpponent_DisplaySquare 
+                                    { position: position
+                                    , color: color
+                                    , moves: movesForFilled                        
+                                    , outflanks: outflanksForFilled
+                                    , flipCount: B.filledSquareFlipCount x
+                                    , isPriorMove: isPriorMove   
+                                    , isOutflankOfPriorMove: isOutflankOfPriorMove                                                                     
+                                    }  
     
 
-toDisplaySquare_EndedGame :: EndedGameState -> B.Tagged_Square -> Tagged_DisplaySquare
-toDisplaySquare_EndedGame endedGameState taggedSquare =
+toDisplaySquare_EndedGame :: GS.EndedGameState -> B.Tagged_Square -> Tagged_DisplaySquare
+toDisplaySquare_EndedGame endedGameState@(GS.EndedGameState rec) taggedSquare =
     case taggedSquare of
         B.Tagged_EmptySquare _ -> -- perhaps possible
             Tagged_Empty_EndedGame_DisplaySquare $ Empty_EndedGame_DisplaySquare 
@@ -202,21 +229,17 @@ toDisplaySquare_EndedGame endedGameState taggedSquare =
 
         B.Tagged_FilledSquare x -> 
             let
+                position = B.toPosition taggedSquare
                 color = B.filledSquareColor x
             in
                 Tagged_Filled_EndedGame_DisplaySquare $ Filled_EndedGame_DisplaySquare
-                    { position: B.toPosition taggedSquare
+                    { position: position
                     , color: color
-                    , mbIsWinningColor: mbIsWinningColor color endedGameState
+                    , mbIsWinningColor: GS.mbIsWinningColor color endedGameState
                     , flipCount: B.filledSquareFlipCount x
+                    , isPriorMove: B.isMoveAtPosition position rec.priorMove
+                    , isOutflankOfPriorMove: GS.isOutflankOfPriorMove (GS.Tagged_EndedGameState endedGameState) position 
                     }
-
-
-mbIsWinningColor :: Color -> EndedGameState -> Maybe Boolean
-mbIsWinningColor color endedGameState =
-    case winner endedGameState of
-        WinColor winColor -> Just $ color == winColor
-        Tie               -> Nothing
 
 
 movesAndOutflanksForFilled :: Position -> List B.Move -> {movePositions :: List Position, outflankPositions :: List Position}
@@ -238,7 +261,7 @@ movesAndOutflanksForFilled position allMoves =
         }        
 
 
-status :: Boolean -> Boolean -> Players -> Tagged_GameState -> String
+status :: Boolean -> Boolean -> Players -> GS.Tagged_GameState -> String
 status isImminentGameStart isGameStarted players taggedGameState =
     let
         lzCurrentPlayer' :: Lazy Player
@@ -255,15 +278,15 @@ status isImminentGameStart isGameStarted players taggedGameState =
     in
         if isImminentGameStart || isGameStarted then
             case taggedGameState of
-                Tagged_StartGameState _ -> force $ lzFirstMoveStatus $ force lzCurrentPlayer'
+                GS.Tagged_StartGameState _ -> force $ lzFirstMoveStatus $ force lzCurrentPlayer'
 
-                Tagged_MidGameState (MidGameState rec) ->
+                GS.Tagged_MidGameState (GS.MidGameState rec) ->
                     case rec.status of
-                        Normal -> force $ lzNextMoveStatus $ force lzCurrentPlayer'                       
-                        ForfeitTurn_Rule2 ->  (force $ lzNextMoveStatus $ force lzCurrentPlayer') <> " (" <> (playerStatus $ force lzOpponentPlayer') <> " forfeits turn)"     
-                        TransferDisk_Rule9 -> "TRANSFER UNUSED-DISK, " <> (force $ lzNextMoveStatus $ force lzCurrentPlayer')  
+                        GS.Normal -> force $ lzNextMoveStatus $ force lzCurrentPlayer'                       
+                        GS.ForfeitTurn_Rule2 ->  (force $ lzNextMoveStatus $ force lzCurrentPlayer') <> " (" <> (playerStatus $ force lzOpponentPlayer') <> " forfeits turn)"     
+                        GS.TransferDisk_Rule9 -> "TRANSFER UNUSED-DISK, " <> (force $ lzNextMoveStatus $ force lzCurrentPlayer')  
 
-                Tagged_EndedGameState x -> gameSummaryDisplay x
+                GS.Tagged_EndedGameState x -> gameSummaryDisplay x
         else
             ""
 
@@ -278,23 +301,23 @@ playerStatus (Player color playerType) =
             Computer _ -> "Computer " <> suffix  
 
 
-placedDiskCountsStatus :: Tagged_GameState -> String
+placedDiskCountsStatus :: GS.Tagged_GameState -> String
 placedDiskCountsStatus taggedGameState =
-    board_FromTaggedGameState taggedGameState
+    GS.board_FromTaggedGameState taggedGameState
         # B.squaresColoredCounts_BlackWhite
         # show 
 
 
-gameSummaryDisplay :: EndedGameState -> String
-gameSummaryDisplay x@(EndedGameState rec) =
+gameSummaryDisplay :: GS.EndedGameState -> String
+gameSummaryDisplay x@(GS.EndedGameState rec) =
     let 
         reasonString = case rec.status of
-            NoUnusedDisksForBoth -> "No more available disks for either player"
-            NoValidMoves         -> "No more valid moves"
+            GS.NoUnusedDisksForBoth -> "No more available disks for either player"
+            GS.NoValidMoves         -> "No more valid moves"
 
-        winnerString = case winner x of
-            WinColor color -> "Winner is " <> (show color)
-            Tie            -> "TIE game"
+        winnerString = case GS.winner x of
+            GS.WinColor color -> "Winner is " <> (show color)
+            GS.Tie            -> "TIE game"
     in 
         "GAME OVER (" <> reasonString <> ") " <> winnerString
 
@@ -327,9 +350,9 @@ unusedDiskClassesForColor color =
         White -> DC.unusedDisk_White    
 
 
-gameOver_Emphasis :: Tagged_GameState -> String
+gameOver_Emphasis :: GS.Tagged_GameState -> String
 gameOver_Emphasis taggedGameState =       
-    if isEndedGameState taggedGameState then
+    if GS.isEndedGameState taggedGameState then
         DC.gameOver_Emphasis
     else
         ""
@@ -342,7 +365,7 @@ isActiveClass_Tag bool =
         ""
     
 
-placedDisksStatus :: Boolean -> Tagged_GameState -> String    
+placedDisksStatus :: Boolean -> GS.Tagged_GameState -> String    
 placedDisksStatus bool taggedGameState = 
     if bool then
         "Placed disks: " <> placedDiskCountsStatus taggedGameState

@@ -71,7 +71,17 @@ moveSquareBorder_NonSuggested =
 
 moveSquareBorder_Suggested :: String
 moveSquareBorder_Suggested = 
-    " ba bw3 b--light-purple " 
+    " ba bw2 b--light-purple " 
+
+
+filledSquareBorder_PriorMove :: String
+filledSquareBorder_PriorMove = 
+    " ba bw2 b--black "         
+
+
+filledSquareBorder_OutflankOfPriorMove :: String
+filledSquareBorder_OutflankOfPriorMove =
+    " ba bw2 b--black b--dotted "   
 
 
 outflankSquareBorder_FocusedMoveSquare :: String

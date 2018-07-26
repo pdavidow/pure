@@ -8,7 +8,7 @@ import Prelude
 import Board (boardElems)
 import BoardSize (boardSize)
 import DOM.Classy.Event (toEvent)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..)) 
 import Data.Monoid (guard)
 import DiskHTML (diskClasses, diskChildren)
 import Display as DSP
@@ -94,27 +94,26 @@ squareProps state taggedDisplaySquare =
             , HE.onMouseUp $ HE.input_ $ MouseUp_MoveSquare x                                
             ] 
 
-        DSP.Tagged_FilledSelf_DisplaySquare _ ->
+        DSP.Tagged_FilledSelf_DisplaySquare (DSP.FilledSelf_DisplaySquare rec) ->
             [ HP.classes 
                 [ HH.ClassName $ DC.fillableGridItem <> 
                     DC.defaultSquareColor <> 
-                    DC.squareBorder_Default
+                    borderProps_Filled rec.isPriorMove rec.isOutflankOfPriorMove
                 ]
             , HE.onDragStart $ HE.input $ PreventDefault <<< toEvent
             ]                    
 
-        DSP.Tagged_FilledOpponent_DisplaySquare x ->
+        DSP.Tagged_FilledOpponent_DisplaySquare x@(DSP.FilledOpponent_DisplaySquare rec) ->
             [ HP.classes 
                 [ HH.ClassName $ DC.fillableGridItem <> 
-                    if HLPR.isOutflankSquare_FocusedMoveSquare state taggedDisplaySquare then 
-                        DC.outflankSquareColor_FocusedMoveSquare <> 
-                        DC.outflankSquareBorder_FocusedMoveSquare
-                    else if HLPR.isOutflankSquare_FocusedFilledOpponentSquare state taggedDisplaySquare then 
-                        DC.outflankSquareColor_FocusedFilledOpponentSquare <> 
-                        DC.outflankSquareBorder_FocusedFilledOpponentSquare                                    
-                    else 
-                        DC.defaultSquareColor <> 
-                        DC.squareBorder_Default
+                    (   if HLPR.isOutflankSquare_FocusedMoveSquare state taggedDisplaySquare then 
+                            DC.outflankSquareColor_FocusedMoveSquare 
+                        else if HLPR.isOutflankSquare_FocusedFilledOpponentSquare state taggedDisplaySquare then 
+                            DC.outflankSquareColor_FocusedFilledOpponentSquare                                  
+                        else 
+                            DC.defaultSquareColor                             
+                    )
+                    <> borderProps_Filled rec.isPriorMove rec.isOutflankOfPriorMove
                 ]
             , HE.onMouseEnter $ HE.input_ $ MouseEnter_FilledOpponentSquare x
             , HE.onMouseLeave $ HE.input_ $ MouseLeave_FilledOpponentSquare                          
@@ -144,7 +143,7 @@ squareProps state taggedDisplaySquare =
                 [ HP.classes 
                     [ HH.ClassName $ DC.fillableGridItem <> 
                         squareColor <> 
-                        DC.squareBorder_Default
+                        borderProps_Filled rec.isPriorMove rec.isOutflankOfPriorMove
                     ]
                 , HE.onDragStart $ HE.input $ PreventDefault <<< toEvent
                 ] 
@@ -167,3 +166,13 @@ squareProps__Move_DisplaySquare state moveSquare =
                 DC.moveSquareBorder_Suggested
             else 
                 DC.moveSquareBorder_NonSuggested
+
+
+borderProps_Filled :: Boolean -> Boolean -> String
+borderProps_Filled isPriorMove isOutflankOfPriorMove =
+    if isPriorMove then 
+        DC.filledSquareBorder_PriorMove 
+    else if isOutflankOfPriorMove then 
+        DC.filledSquareBorder_OutflankOfPriorMove
+    else 
+        DC.squareBorder_Default                

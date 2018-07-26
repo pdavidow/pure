@@ -11,6 +11,8 @@ module GameState
     , makeStartGameState
     , board_FromTaggedGameState
     , core_FromTaggedGameState
+    , mbPriorMove_FromTaggedGameState 
+    , mbIsPriorMoveAtPosition
     , nextMoveColor_FromStartGameState
     , nextMoveColor_FromMidGameState
     , mbNextMoveColor_FromTaggedGameState
@@ -19,11 +21,13 @@ module GameState
     , nextMovesFrom
     , applyMoveOnGameState
     , colorResultingInTaggedGameState
+    , isOutflankOfPriorMove
     , isZeroUnusedDiskCount
     , isForfeitTurn
     , isStartGameState
     , isEndedGameState
     , winner
+    , mbIsWinningColor
     , swapCore
     , makeStartGameStateOn -- todo only used in testing
     )
@@ -32,15 +36,15 @@ module GameState
 import Prelude
 
 import BlackWhite (BlackWhite(..))
-import Board (Board, Move, Tagged_Square(..), applyBoardMove, boardArrayAt, initialBoard, squaresColoredCounts_BlackWhite, toPosition, validMoves, moveColor, boardAt, filledSquares, toFilledSquare, isSquareColored, isEmptyAt, boardSquaresColored, cornerCounts_BlackWhite, filledSquaresAdjacentToEmptyCorners)
+import Board (Board, Move, Tagged_Square(..), applyBoardMove, boardArrayAt, initialBoard, isMoveAtPosition, outflankPositions, squaresColoredCounts_BlackWhite, toPosition, validMoves, moveColor, boardAt, filledSquares, toFilledSquare, isSquareColored, isEmptyAt, boardSquaresColored, cornerCounts_BlackWhite, filledSquaresAdjacentToEmptyCorners)
 import Data.GameTree (class Node, Score(..))
 import Data.Integral (fromIntegral)
-import Data.List (List(..), concatMap, filter, fromFoldable, length, mapMaybe, null, zip)
-import Data.Maybe (Maybe(..))
+import Data.List (List(..), concatMap, elem, filter, fromFoldable, length, mapMaybe, null, zip)
+import Data.Maybe (Maybe(..), maybe)
 import Data.Traversable (sum)
 import Data.Tuple (Tuple(..))
 import Disk (Color(..), toggleColor)
-import Position (isValidPositionRec, makeValidPosition, positionRec)
+import Position (Position, isValidPositionRec, makeValidPosition, positionRec)
 import UnusedDiskCount (UnusedDiskCounts, makeUnusedDiskCounts, transferDiskTo, decreaseByOneFor)
 
 data Core = Core {unusedDiskCounts :: UnusedDiskCounts, board :: Board, currentPlayerColorForSearch :: Color}
@@ -271,6 +275,21 @@ mbPriorMove_FromTaggedGameState taggedGameState =
         Tagged_EndedGameState (EndedGameState rec) -> Just rec.priorMove               
 
 
+mbIsPriorMoveAtPosition :: Tagged_GameState -> Position -> Maybe Boolean
+mbIsPriorMoveAtPosition taggedGameState position =
+    isMoveAtPosition position
+        <$> 
+            mbPriorMove_FromTaggedGameState taggedGameState
+
+
+isOutflankOfPriorMove :: Tagged_GameState -> Position -> Boolean
+isOutflankOfPriorMove taggedGameState pos =
+    maybe 
+        false 
+        (\ move -> elem pos $ outflankPositions move) 
+        (mbPriorMove_FromTaggedGameState taggedGameState)
+
+
 nextMoves_FromTaggedGameState :: Tagged_GameState -> NextMoves
 nextMoves_FromTaggedGameState taggedGameState =
     case taggedGameState of
@@ -324,6 +343,13 @@ winner x =
             WinColor White 
         else
             Tie
+
+
+mbIsWinningColor :: Color -> EndedGameState -> Maybe Boolean
+mbIsWinningColor color endedGameState =
+    case winner endedGameState of
+        WinColor winColor -> Just $ color == winColor
+        Tie               -> Nothing
 
 
 swapCore :: Tagged_GameState -> Core -> Tagged_GameState
