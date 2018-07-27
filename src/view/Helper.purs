@@ -17,7 +17,7 @@ import Prelude
 import Board (movePosition)
 import Data.List (elem)
 import Data.List.NonEmpty as NE
-import Data.Maybe (Maybe(..), isJust)
+import Data.Maybe (Maybe(..), isJust, maybe)
 import Display as DSP
 import GameHistory (GameHistory, undoHistoryOnce)
 import GameState (Tagged_GameState)
@@ -64,9 +64,10 @@ isOutflankSquare_FocusedMoveSquare state taggedDisplaySquare =
 
 isSuggestedMoveSquare :: State -> DSP.Move_DisplaySquare -> Boolean
 isSuggestedMoveSquare state (DSP.Move_DisplaySquare rec) =
-    case state.mb_SuggestedMove of
-        Nothing -> false
-        Just move -> move == rec.move
+    maybe 
+        false 
+        (\ move -> move == rec.move) 
+        state.mb_SuggestedMove
 
 
 isMove_FocusedFilledOpponentSquare :: State -> DSP.Move_DisplaySquare -> Boolean

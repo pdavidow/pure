@@ -239,17 +239,21 @@ component =
 
             H.modify (_ 
                 { players = players' 
+                , mb_SuggestedMove = Nothing
                 }
             )  
             pure next
 
         Click_Settings_Person color next -> do     
             players <- H.gets _.players 
+            gameHistory <- H.gets _.gameHistory  
+
             let player' = Player color DFLT.defaultPlayerType_Person            
             let players' = setItemColored color players player'
 
             H.modify (_ 
                 { players = players'
+                , mb_SuggestedMove = mbSuggestedMove players' gameHistory
                 }
             )  
             pure next

@@ -13,7 +13,7 @@ defaultPlayers :: Players
 defaultPlayers =
     makeBlackWhite b w
     where
-        b = Player Black defaultPlayerType_Computer               
+        b = Player Black defaultPlayerType_Person               
         w = Player White defaultPlayerType_Computer
     
 
@@ -24,8 +24,7 @@ defaultSearchDepth =
 
 defaultPlayerType_Computer :: PlayerType
 defaultPlayerType_Computer =
-    Computer $ SearchDepth SearchDepth_2
-    -- Computer RandomPick
+    Computer $ SearchDepth SearchDepth_3
 
 
 defaultPlayerType_Person :: PlayerType
