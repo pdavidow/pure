@@ -13,6 +13,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties.ARIA as HPA
+import Helper as HLPR
 import Player (Player, isPlayer_Computer, isPlayer_Person)
 import Query (Query(..))
 import State (State)
@@ -68,10 +69,13 @@ settingsModal_HTML state =
                             ]                                    
                         ]
                     ]
-                , HH.div
-                    [ HP.classes [ HH.ClassName "control" ]                            
+                , HH.fieldset
+                    [ HP.classes [ HH.ClassName "control" ]                                               
                     ]
-                    [ HH.label
+                    [ HH.legend 
+                        [] 
+                        [ HH.text "Player Type" ]
+                    , HH.label
                         [ HP.classes [ HH.ClassName "radio" ]                            
                         ]
                         [ HH.span_
@@ -80,12 +84,13 @@ settingsModal_HTML state =
                                 , HP.name "player-type" 
                                 , HP.checked $ isPlayer_Person playerForActiveSetting
                                 , HE.onClick $ HE.input_ $ Click_Settings_Person state.activeSettingsColor
+                                , HP.disabled $ HLPR.isGameStarted state 
                                 ]                               
                             , HH.text "Person" 
                             ] 
                         ]   
                     , HH.label
-                        [ HP.classes [ HH.ClassName "radio" ]                            
+                        [ HP.classes [ HH.ClassName "radio" ]                           
                         ]
                         [ HH.span_
                             [ HH.input 
@@ -93,6 +98,7 @@ settingsModal_HTML state =
                                 , HP.name "player-type" 
                                 , HP.checked $ isPlayer_Computer playerForActiveSetting
                                 , HE.onClick $ HE.input_ $ Click_Settings_Computer state.activeSettingsColor
+                                , HP.disabled $ HLPR.isGameStarted state 
                                 ]                               
                             , HH.text "Computer" 
                             ] 
@@ -105,6 +111,7 @@ settingsModal_HTML state =
                 [ HH.button
                     [ HP.classes [ HH.ClassName "button is-warning" ]
                     , HE.onClick (HE.input_ Click_ResetSettingsToDefaults)
+                    , HP.disabled $ HLPR.isGameStarted state
                     ]
                     [ HH.text "Reset to Defaults" ]  
                 ]
