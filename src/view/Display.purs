@@ -18,6 +18,7 @@ module Display
     , unusedDiskClassesForColor
     , gameOver_Emphasis
     , isActiveClass_Tag
+    , isInvisibleClass_Tag
     , nameForStartRestartButton
     )
     where
@@ -357,6 +358,7 @@ gameOver_Emphasis taggedGameState =
     else
         ""
 
+
 isActiveClass_Tag :: Boolean -> String           
 isActiveClass_Tag bool = 
     if bool then
@@ -365,12 +367,21 @@ isActiveClass_Tag bool =
         ""
     
 
+isInvisibleClass_Tag :: Boolean -> String           
+isInvisibleClass_Tag bool = 
+    if bool then
+        DC.isInvisible 
+    else
+        ""
+
+
 placedDisksStatus :: Boolean -> GS.Tagged_GameState -> String    
 placedDisksStatus bool taggedGameState = 
     if bool then
         "Placed disks: " <> placedDiskCountsStatus taggedGameState
     else
         ""
+            
             
 nameForStartRestartButton :: Boolean -> Players -> String
 nameForStartRestartButton isGameStarted players =

@@ -6,6 +6,8 @@ module Player
     , setCurrentPlayerColorForSearch
     , isPlayer_Person
     , isPlayer_Computer
+    -- , isPlayer_ComputerStrategy_RandomPick    
+    -- , isPlayer_ComputerStrategy_Search
     , isComputerVsComputer
     , blackPlayer
     , whitePlayer
@@ -13,21 +15,25 @@ module Player
     where
  
 import Prelude
+
 import BlackWhite (BlackWhite, getItemColored, getItemBlack, getItemWhite)
 import Disk (Color)
 import GameState (Core(..), Tagged_GameState, core_FromTaggedGameState, swapCore)
-import Search (Strategy, SearchDepth)
+import Search (SearchDepth)
 import Type.Data.Boolean (kind Boolean)
 
 
 data Player = Player Color PlayerType
 
 data PlayerType
-    = Person 
-        { suggestionSearchDepth :: SearchDepth
+    = Computer 
+        { searchDepth :: SearchDepth
+        , isRandomPick :: Boolean
+        } 
+    | Person 
+        { searchDepth :: SearchDepth
         , isAutoSuggest :: Boolean
-        }
-    | Computer Strategy
+        }   
        
 type Players = BlackWhite Player
 
@@ -78,4 +84,4 @@ isPlayer_Computer :: Player -> Boolean
 isPlayer_Computer (Player _ playerType) =
     case playerType of
         Person   _ -> false
-        Computer _ -> true       
+        Computer _ -> true

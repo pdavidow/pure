@@ -24,7 +24,7 @@ import GameHistory (GameHistory, applyMoveOnHistory)
 import GameState (Tagged_GameState(..), mbNextMoveColor_FromTaggedGameState, nextMoves_FromTaggedGameState)
 import Partial.Unsafe (unsafePartial)
 import Player (Player(..), PlayerType(..), Players, playerColored, setCurrentPlayerColorForSearch, isComputerVsComputer) 
-import Search (Strategy(..), mbBestNextMove)
+import Search (mbBestNextMove)
 import Logger (logMoveErrors)  
 import Disk (toggleColor)
 
@@ -73,16 +73,16 @@ moveSequence' count players history = do
                 Person _ -> do
                     pure Nothing
 
-                Computer strategy -> do
-                    case strategy of    
-                        RandomPick -> do 
+                Computer rec -> do
+                    case rec.isRandomPick of    
+                        true -> do 
                             let moves = nextMoves_FromTaggedGameState taggedGameState
                             randN <- liftEff $ randomInt 0 $ length moves - 1 -- https://purescript-users.ml/t/problem-with-using-rand-in-a-let/292/2
                             pure $ index moves randN 
 
-                        SearchDepth searchDepth -> do
+                        false -> do
                             let taggedGameState' = setCurrentPlayerColorForSearch taggedGameState color
-                            pure $ mbBestNextMove searchDepth taggedGameState' 
+                            pure $ mbBestNextMove rec.searchDepth taggedGameState' 
 
             maybe (pure history) (\ move -> advanceHistory' count players history move) mbMove
 
@@ -122,7 +122,7 @@ mbSuggestedMove players history =
                 case playerType of
                     Person rec ->
                         if rec.isAutoSuggest then
-                            mbBestNextMove rec.suggestionSearchDepth $ setCurrentPlayerColorForSearch taggedGameState color
+                            mbBestNextMove rec.searchDepth $ setCurrentPlayerColorForSearch taggedGameState color
                         else
                             Nothing
 

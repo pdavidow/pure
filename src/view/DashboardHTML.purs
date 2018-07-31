@@ -38,8 +38,8 @@ dashboard_HTML state =
             ]
             [ HH.text "Flip Counts" ]   
         ]
-        <> 
-        guard (isComputerVsComputer state.players) [ HH.button
+        <> guard (isComputerVsComputer state.players) 
+        [ HH.button
             [ HP.classes [ HH.ClassName "ml4" ]
             , HE.onClick $ HE.input_ Click_ComputerProceed
             , HP.disabled $ isDisabled_ComputerProceed state

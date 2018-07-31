@@ -27,7 +27,7 @@ navbar_HTML state =
         [ HH.span
             [ HP.classes [ HH.ClassName "b" ] -- todo "black bg_white hover_white hover_bg_black" effect doesn't work  
             ]    
-            [ HH.text "OTHELLO" ] 
+            [ HH.text "OTHELLO" ]  
         , HH.button 
             [ HP.classes [ HH.ClassName "ml3 button is-small is-inverted is-outlined" ]
             , HP.disabled ( HLPR.isGameStarted state && (isStartGameState $ HLPR.gameState state) )
@@ -40,7 +40,7 @@ navbar_HTML state =
             [ HP.classes [ HH.ClassName "ml3" ] -- button modal-button
             --, HP.prop (HH.PropName "data-target") DC.modalSettingsId 
             , HPA.hasPopup "true"
-            , HE.onClick $ HE.input_ Click_Open_Settings
+            , HE.onClick $ HE.input_ Click_Settings_Open
             ]
             [ HH.text "Settings" ]                      
         , HH.a

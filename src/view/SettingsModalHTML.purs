@@ -1,29 +1,39 @@
 module SettingsModalHTML
-    ( settingsModal_HTML )
-    where
-      
+    ( settingsModal_HTML
+    , isPendingChanges
+    )
+    where      
+
 import Prelude
 
-import BlackWhite (getItemColored)
+import BlackWhite (getItemColored) 
 import DOM.HTML.Indexed.InputType as DOMT
+import Data.Monoid (guard)
 import Disk (Color(..))
-import Display (isActiveClass_Tag)
+import Display (isActiveClass_Tag, isInvisibleClass_Tag)
+import DisplayConstants as DC
+import EditSetting (EditPlayer(..), EditPlayerType(..), EditPlayerTypeRec, toPlayers)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties.ARIA as HPA
 import Helper as HLPR
-import Player (Player, isPlayer_Computer, isPlayer_Person)
 import Query (Query(..))
+import Search (SearchDepth(..))
+import SettingsDefaults as DFLT
 import State (State)
 import Type.Data.Boolean (kind Boolean)
-
+ 
+isPendingChanges :: State -> Boolean
+isPendingChanges state =
+    state.players /= toPlayers state.editPlayers 
+  
 
 settingsModal_HTML :: State -> H.ComponentHTML Query 
 settingsModal_HTML state =
     HH.div 
-        [ HP.classes [ HH.ClassName $ "modal" <> (isActiveClass_Tag state.isActive_SettingsModal)  ]
+        [ HP.classes [ HH.ClassName $ "modal" <> (isActiveClass_Tag state.isShowModal_Settings)  ]
         ]
         [ HH.div
             [ HP.classes [ HH.ClassName "modal-background" ]
@@ -32,94 +42,329 @@ settingsModal_HTML state =
         , HH.div
             [ HP.classes [ HH.ClassName "modal-card" ]
             ]
-            [ HH.header
-                [ HP.classes [ HH.ClassName "modal-card-head" ]
-                ]
-                [ HH.p
-                    [ HP.classes [ HH.ClassName "modal-card-title" ]
-                    ]
-                    [ HH.text "Settings"]
-                , HH.button
-                    [ HP.classes [ HH.ClassName "delete" ]
-                    , HPA.label "close"
-                    , HE.onClick $ HE.input_ Click_Close_Settings
-                    ]
-                    []
-                ]
-            , HH.section
-                [ HP.classes [ HH.ClassName "modal-card-body" ]
-                ]
-                [ HH.div
-                    [ HP.classes [ HH.ClassName "tabs" ]                            
-                    ]
-                    [ HH.ul_
-                        [ HH.li
-                            [ HP.classes [ HH.ClassName $ isActiveClass_Tag $ state.activeSettingsColor == Black ]                            
-                            ]
-                            [ HH.a
-                                [ HE.onClick $ HE.input_ $ Click_Settings Black ]
-                                [ HH.text "Black" ]
-                            ]
-                        , HH.li
-                            [ HP.classes [ HH.ClassName $ isActiveClass_Tag $ state.activeSettingsColor == White ]                            
-                            ]
-                            [ HH.a
-                                [ HE.onClick $ HE.input_ $ Click_Settings White ]
-                                [ HH.text "White" ]
-                            ]                                    
-                        ]
-                    ]
-                , HH.fieldset
-                    [ HP.classes [ HH.ClassName "control" ]                                               
-                    ]
-                    [ HH.legend 
-                        [] 
-                        [ HH.text "Player Type" ]
-                    , HH.label
-                        [ HP.classes [ HH.ClassName "radio" ]                            
-                        ]
-                        [ HH.span_
-                            [ HH.input 
-                                [ HP.type_ DOMT.InputRadio
-                                , HP.name "player-type" 
-                                , HP.checked $ isPlayer_Person playerForActiveSetting
-                                , HE.onClick $ HE.input_ $ Click_Settings_Person state.activeSettingsColor
-                                , HP.disabled $ HLPR.isGameStarted state 
-                                ]                               
-                            , HH.text "Person" 
-                            ] 
-                        ]   
-                    , HH.label
-                        [ HP.classes [ HH.ClassName "radio" ]                           
-                        ]
-                        [ HH.span_
-                            [ HH.input 
-                                [ HP.type_ DOMT.InputRadio
-                                , HP.name "player-type" 
-                                , HP.checked $ isPlayer_Computer playerForActiveSetting
-                                , HE.onClick $ HE.input_ $ Click_Settings_Computer state.activeSettingsColor
-                                , HP.disabled $ HLPR.isGameStarted state 
-                                ]                               
-                            , HH.text "Computer" 
-                            ] 
-                        ]                                                                
-                    ]
-                ]
-            , HH.footer 
-                [ HP.classes [ HH.ClassName "modal-card-foot" ]
-                ]
-                [ HH.button
-                    [ HP.classes [ HH.ClassName "button is-warning" ]
-                    , HE.onClick (HE.input_ Click_ResetSettingsToDefaults)
-                    , HP.disabled $ HLPR.isGameStarted state
-                    ]
-                    [ HH.text "Reset to Defaults" ]  
-                ]
+            [ head_HTML
+            , body_HTML
+            , foot_HTML
             ]
         ]
 
     where
+
+    head_HTML :: H.ComponentHTML Query
+    head_HTML =
+        HH.header
+            [ HP.classes [ HH.ClassName "modal-card-head" ]
+            ]
+            [ HH.p
+                [ HP.classes [ HH.ClassName "modal-card-title" ]
+                ]
+                [ HH.text "Settings"]
+            , HH.button
+                [ HP.classes [ HH.ClassName "delete" ]
+                , HPA.label "close"
+                , HE.onClick $ HE.input_ $ Click_Settings_Cancel $ isPendingChanges state
+                ]
+                []
+            ]
           
-    playerForActiveSetting :: Player
+
+    body_HTML :: H.ComponentHTML Query
+    body_HTML =
+        HH.section
+            [ HP.classes [ HH.ClassName "modal-card-body" ]
+            ] 
+            [ body_Tabs_HTML
+            , body_PlayerType_HTML 
+            , HH.section 
+                [ HP.classes [ HH.ClassName "ml3 mt3" ]                            
+                ] $ []
+                <> guard isSelected_Computer 
+                [ body_ComputerDetails_HTML                                                                                                                                                                        
+                ]
+                <> guard isSelected_Person 
+                [ body_PersonDetails_HTML                                                                                                                                                                        
+                ]
+            ]
+
+
+    body_Tabs_HTML :: H.ComponentHTML Query
+    body_Tabs_HTML =
+        HH.div
+            [ HP.classes [ HH.ClassName "tabs is-boxed" ]                            
+            ]
+            [ HH.ul_
+                [ HH.li
+                    [ HP.classes [ HH.ClassName $ "b " <> (isActiveClass_Tag $ state.settings_PlayerColor == Black) ]                            
+                    ]
+                    [ HH.a
+                        [ HE.onClick $ HE.input_ $ Click_Settings_PlayerColor Black ]
+                        [ HH.text "Black" ]
+                    ]
+                , HH.li
+                    [ HP.classes [ HH.ClassName $ "b " <> (isActiveClass_Tag $ state.settings_PlayerColor == White) ]                            
+                    ]
+                    [ HH.a
+                        [ HE.onClick $ HE.input_ $ Click_Settings_PlayerColor White ]
+                        [ HH.text "White" ]
+                    ]                                    
+                ]
+            ]
+
+
+    body_PlayerType_HTML :: H.ComponentHTML Query
+    body_PlayerType_HTML =
+        HH.div_
+            [ HH.div 
+                [ HP.classes [ HH.ClassName "b" ]
+                ]
+                [ HH.text "Player Type" ]
+                , HH.div
+                    [ HP.classes [ HH.ClassName "control" ]                                               
+                    ]
+                    [ HH.label
+                        [ HP.classes [ HH.ClassName "radio" ]                           
+                        ]
+                        [ HH.span
+                            [ HP.classes [ HH.ClassName "b" ]
+                            ]                        
+                            [ HH.input 
+                                [ HP.type_ DOMT.InputRadio
+                                , HP.name "PlayerType"
+                                , HP.checked isSelected_Computer
+                                , HE.onClick $ HE.input_ $ ModifySettings state.settings_PlayerColor $ \ r -> r {playerType = EditComputer} 
+                                , HP.disabled isDisabled_PlayerType 
+                                ]                               
+                            , HH.text "Computer" 
+                            ] 
+                        ]                       
+                    , HH.label
+                        [ HP.classes [ HH.ClassName "radio" ]                            
+                        ]
+                        [ HH.span
+                            [ HP.classes [ HH.ClassName "b" ]
+                            ] 
+                            [ HH.input 
+                                [ HP.type_ DOMT.InputRadio
+                                , HP.name "PlayerType" 
+                                , HP.checked isSelected_Person
+                                , HE.onClick $ HE.input_ $ ModifySettings state.settings_PlayerColor $ \ r -> r {playerType = EditPerson} 
+                                , HP.disabled isDisabled_PlayerType
+                                ]                               
+                            , HH.text "Person" 
+                            ] 
+                        ] 
+                    ]
+                ]            
+
+
+    body_ComputerDetails_HTML :: H.ComponentHTML Query
+    body_ComputerDetails_HTML =
+        HH.section_
+            [ HH.div_ 
+                [ HH.text "Strategy" ]        
+            , HH.div
+                [ HP.classes [ HH.ClassName "control" ]                                               
+                ]
+                [ HH.label
+                    [ HP.classes [ HH.ClassName "radio" ]                            
+                    ]
+                    [ HH.span_
+                        [ HH.input 
+                            [ HP.type_ DOMT.InputRadio
+                            , HP.name "ComputerStrategy"  
+                            , HP.checked $ editRec.computer_isRandomPick
+                            , HE.onClick $ HE.input_ $ ModifySettings state.settings_PlayerColor $ \ r -> r {computer_isRandomPick = true}  
+                            ]                               
+                        , HH.text "Random"  
+                        ] 
+                    ]   
+                , HH.label
+                    [ HP.classes [ HH.ClassName "radio" ]                           
+                    ]
+                    [ HH.span_
+                        [ HH.input 
+                            [ HP.type_ DOMT.InputRadio
+                            , HP.name "ComputerStrategy"  
+                            , HP.checked isSelected_ComputerDetails_SearchDepth
+                            , HE.onClick $ HE.input_ $ ModifySettings state.settings_PlayerColor $ \ r -> r {computer_isRandomPick = false} 
+                            ]                               
+                        , HH.text "Search" 
+                        ] 
+                    ]                     
+                ]   
+            , HH.section
+                [ HP.classes [ HH.ClassName $ isInvisibleClass_Tag $ not isSelected_ComputerDetails_SearchDepth ]                            
+                ] 
+                [ HH.div
+                    [ HP.classes [ HH.ClassName "mt2" ]                         
+                    ]            
+                    [ HH.div_ 
+                        [ HH.text "Depth" ]  
+                    , HH.div    
+                        [ HP.classes [ HH.ClassName "control" ]                                               
+                        ]   
+                        
+                        -- todo REFACTOR  
+                        [ body_ComputerDetails_SearchDepthChoice_HTML SearchDepth_1 "1"
+                        , body_ComputerDetails_SearchDepthChoice_HTML SearchDepth_2 "2"
+                        , body_ComputerDetails_SearchDepthChoice_HTML SearchDepth_3 "3"
+                        , body_ComputerDetails_SearchDepthChoice_HTML SearchDepth_4 "4"
+                        , body_ComputerDetails_SearchDepthChoice_HTML SearchDepth_5 "5"                                      
+                        ]     
+                    ]
+                ]   
+            ]
+
+
+    body_ComputerDetails_SearchDepthChoice_HTML :: SearchDepth -> String -> H.ComponentHTML Query
+    body_ComputerDetails_SearchDepthChoice_HTML depth name =
+        HH.label
+            [ HP.classes [ HH.ClassName "radio" ]                            
+            ]
+            [ HH.span_
+                [ HH.input 
+                    [ HP.type_ DOMT.InputRadio
+                    , HP.name "Depth"  
+                    , HP.checked $ editRec.computer_searchDepth == depth
+                    , HE.onClick $ HE.input_ $ ModifySettings state.settings_PlayerColor $ \ r -> r {computer_searchDepth = depth} 
+                    ]                                
+                , HH.text name 
+                ] 
+            ]   
+
+
+    body_PersonDetails_HTML :: H.ComponentHTML Query
+    body_PersonDetails_HTML = 
+        HH.section
+            [ HP.classes [ HH.ClassName body_PersonDetails_section_classes ]                         
+            ]         
+            [ HH.label
+                [ HP.classes [ HH.ClassName "checkbox" ]                            
+                ]
+                [ HH.span_
+                    [ HH.input 
+                        [ HP.type_ DOMT.InputCheckbox
+                        , HP.checked $ editRec.person_isAutoSuggest
+                        , HE.onClick $ HE.input_ $ ModifySettings state.settings_PlayerColor $ \ r -> r {person_isAutoSuggest = not editRec.person_isAutoSuggest}  
+                        ]                               
+                    , HH.text "Auto Suggest"  
+                    ] 
+                ]   
+            , HH.section
+                [ HP.classes [ HH.ClassName $ isInvisibleClass_Tag $ not isSelected_PersonDetails_SearchDepth ]                            
+                ] 
+                [ HH.div
+                    [ HP.classes [ HH.ClassName "mt2" ]                         
+                    ]            
+                    [ HH.div_ 
+                        [ HH.text "Search Depth" ]  
+                    , HH.div    
+                        [ HP.classes [ HH.ClassName "control" ]                                               
+                        ]   
+                        
+                        -- todo REFACTOR  
+                        [ body_PersonDetails_SearchDepthChoice_HTML SearchDepth_1 "1"
+                        , body_PersonDetails_SearchDepthChoice_HTML SearchDepth_2 "2"
+                        , body_PersonDetails_SearchDepthChoice_HTML SearchDepth_3 "3"
+                        , body_PersonDetails_SearchDepthChoice_HTML SearchDepth_4 "4"
+                        , body_PersonDetails_SearchDepthChoice_HTML SearchDepth_5 "5"                                      
+                        ]     
+                    ]
+                ]                 
+            ]
+
+
+    body_PersonDetails_SearchDepthChoice_HTML :: SearchDepth -> String -> H.ComponentHTML Query
+    body_PersonDetails_SearchDepthChoice_HTML depth name =
+        HH.label
+            [ HP.classes [ HH.ClassName "radio" ]                            
+            ]
+            [ HH.span_
+                [ HH.input 
+                    [ HP.type_ DOMT.InputRadio
+                    , HP.name "Depth"  
+                    , HP.checked $ editRec.computer_searchDepth == depth
+                    , HE.onClick $ HE.input_ $ ModifySettings state.settings_PlayerColor $ \ r -> r {person_searchDepth = depth} 
+                    ]                                
+                , HH.text name 
+                ] 
+            ]   
+
+
+    foot_HTML :: H.ComponentHTML Query
+    foot_HTML =
+        HH.footer 
+            [ HP.classes [ HH.ClassName "modal-card-foot" ]
+            ]
+            [ HH.button
+                [ HP.classes [ HH.ClassName "button is-success" ]
+                , HE.onClick (HE.input_ Click_Settings_Save)
+                , HP.disabled isDisabled_SaveButton 
+                ]
+                [ HH.text "Save changes" ]  
+            , HH.button
+                [ HP.classes [ HH.ClassName "button" ]
+                , HE.onClick $ HE.input_ $ Click_Settings_Cancel $ isPendingChanges state
+                ]
+                [ HH.text "Cancel" ]                      
+            , HH.button
+                [ HP.classes [ HH.ClassName "button is-warning" ] -- todo float all the way to the right
+                , HE.onClick (HE.input_ Click_Settings_Reset)
+                , HP.disabled isDisabled_ResetButton  
+                ]
+                [ HH.text "Reset to Defaults" ]  
+            ]
+
+
+    playerForActiveSetting :: EditPlayer
     playerForActiveSetting =
-        getItemColored (state.activeSettingsColor) state.players
+        getItemColored (state.settings_PlayerColor) state.editPlayers
+
+
+    editRec :: EditPlayerTypeRec
+    editRec =
+        x where (EditPlayer _ x) = playerForActiveSetting
+
+
+    isDisabled_SaveButton :: Boolean
+    isDisabled_SaveButton =
+        not $ isPendingChanges state
+
+
+    isDisabled_ResetButton :: Boolean
+    isDisabled_ResetButton =
+        HLPR.isGameStarted state ||
+            toPlayers state.editPlayers == DFLT.defaultPlayers 
+
+
+    isDisabled_PlayerType :: Boolean
+    isDisabled_PlayerType =
+        HLPR.isGameStarted state
+
+
+    isSelected_ComputerDetails_SearchDepth :: Boolean
+    isSelected_ComputerDetails_SearchDepth =
+        not editRec.computer_isRandomPick  
+
+
+    isSelected_PersonDetails_SearchDepth :: Boolean
+    isSelected_PersonDetails_SearchDepth = 
+        editRec.person_isAutoSuggest
+
+
+    isSelected_Computer :: Boolean
+    isSelected_Computer =
+        editRec.playerType == EditComputer
+
+
+    isSelected_Person :: Boolean
+    isSelected_Person =
+        editRec.playerType == EditPerson
+
+
+    body_PersonDetails_section_classes :: String
+    body_PersonDetails_section_classes =
+        if editRec.person_isAutoSuggest then 
+            "pl1 w5" <> DC.moveSquareBorder_Suggested 
+        else 
+            ""

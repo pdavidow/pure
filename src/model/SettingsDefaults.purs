@@ -2,34 +2,51 @@ module SettingsDefaults
     where
 
 
-import Prelude
 import BlackWhite (makeBlackWhite)
 import Disk (Color(..))
 import Player (Player(..), PlayerType(..), Players)
-import Search (SearchDepth(..), Strategy(..))
+import Search (SearchDepth(..))
+import Type.Data.Boolean (kind Boolean)
 
 
 defaultPlayers :: Players
 defaultPlayers =
-    makeBlackWhite b w
-    where
-        b = Player Black defaultPlayerType_Person               
-        w = Player White defaultPlayerType_Computer
-    
+    makeBlackWhite 
+        (Player Black defaultPerson_PlayerType)              
+        (Player White defaultComputer_PlayerType)
 
-defaultSearchDepth :: SearchDepth
-defaultSearchDepth =
+
+defaultComputer_PlayerType :: PlayerType
+defaultComputer_PlayerType =
+    Computer
+        { searchDepth: defaultComputer_searchDepth
+        , isRandomPick: defaultComputer_isRandomPick
+        } 
+
+
+defaultPerson_PlayerType :: PlayerType
+defaultPerson_PlayerType =
+    Person  
+        { searchDepth: defaultPerson_searchDepth
+        , isAutoSuggest: defaultPerson_isAutoSuggest 
+        } 
+
+
+defaultComputer_isRandomPick :: Boolean
+defaultComputer_isRandomPick = 
+    false
+
+
+defaultComputer_searchDepth :: SearchDepth
+defaultComputer_searchDepth =
+    SearchDepth_2
+
+
+defaultPerson_searchDepth :: SearchDepth
+defaultPerson_searchDepth =
     SearchDepth_3
 
 
-defaultPlayerType_Computer :: PlayerType
-defaultPlayerType_Computer =
-    Computer $ SearchDepth SearchDepth_3
-
-
-defaultPlayerType_Person :: PlayerType
-defaultPlayerType_Person =
-    Person  
-        { suggestionSearchDepth: defaultSearchDepth
-        , isAutoSuggest: true 
-        } 
+defaultPerson_isAutoSuggest :: Boolean
+defaultPerson_isAutoSuggest =
+    true        

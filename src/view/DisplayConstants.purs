@@ -178,3 +178,8 @@ modalSettingsId =
 isActive :: String
 isActive =
     " is-active "      
+
+
+isInvisible :: String
+isInvisible =
+    " is-invisible "  -- https://bulma.io/documentation/modifiers/helpers/          

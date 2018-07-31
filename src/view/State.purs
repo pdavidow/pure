@@ -5,18 +5,19 @@ module State
 
     where
       
-
 import Board (Move)
 import Data.List (List(Nil))
 import Data.Maybe (Maybe(..))
 import Disk (Color(..))
 import Display (Move_DisplaySquare)
+import EditSetting (EditPlayers, toEditPlayers)
 import GameHistory (GameHistory, makeHistory)
 import Player (Players)
 import Position (Position)
-import StatusStartRestart (Status_StartRestart(..))
-import SettingsDefaults as DFLT
 import Sequencer (mbSuggestedMove)
+import SettingsDefaults as DFLT
+import StatusStartRestart (Status_StartRestart(..))
+
 
 type State = 
     { players :: Players
@@ -28,12 +29,17 @@ type State =
     , outflanks_FocusedFilledOpponentSquare :: List Position
     , mb_SuggestedMove :: Maybe Move
     , isShow_FlipCounts :: Boolean
-    , isShow_ResetToDefaultsModal :: Boolean
-    , isActive_SettingsModal :: Boolean
+
+    , editPlayers :: EditPlayers
+    , settings_PlayerColor :: Color
+    , isShowModal_Settings :: Boolean    
+    , isShowModal_Confirm_Settings_Save :: Boolean
+    , isShowModal_Confirm_Settings_Cancel :: Boolean    
+    , isShowModal_Confirm_Settings_Reset :: Boolean
+
     , isImminentGameStart :: Boolean
     , isAwaitingConfirm_ResetSettingsToDefaults :: Boolean
     , status_StartRestart :: Status_StartRestart
-    , activeSettingsColor :: Color
     }      
 
 
@@ -48,14 +54,20 @@ initialState =
     , outflanks_FocusedFilledOpponentSquare: Nil
     , mb_SuggestedMove: mb_SuggestedMove
     , isShow_FlipCounts: false
-    , isShow_ResetToDefaultsModal: false
-    , isActive_SettingsModal: false
+
+    , editPlayers: editPlayers
+    , settings_PlayerColor: Black 
+    , isShowModal_Settings: false   
+    , isShowModal_Confirm_Settings_Save: false
+    , isShowModal_Confirm_Settings_Cancel: false 
+    , isShowModal_Confirm_Settings_Reset: false
+
     , isImminentGameStart: false
     , isAwaitingConfirm_ResetSettingsToDefaults: false
-    , status_StartRestart: NotStarted
-    , activeSettingsColor: Black           
+    , status_StartRestart: NotStarted          
     }
     where 
-        players = DFLT.defaultPlayers  
+        players = DFLT.defaultPlayers 
+        editPlayers = toEditPlayers players
         gameHistory = makeHistory 
         mb_SuggestedMove = mbSuggestedMove players gameHistory    

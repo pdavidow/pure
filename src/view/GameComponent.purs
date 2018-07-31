@@ -6,7 +6,7 @@ module GameComponent
 
 import Prelude
 
-import BlackWhite (setItemColored)
+import BlackWhite (getItemColored, setItemColored)
 import BoardHTML (board_HTML)
 import ConfirmModalHTML (confirmModal_HTML)
 import Control.Monad.Aff (Aff)
@@ -18,7 +18,7 @@ import DOM.Classy.Event (preventDefault)
 import DashboardFooterHTML (dashboardFooter_HTML)
 import DashboardHTML (dashboard_HTML)
 import Data.List (List(Nil))
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), maybe) 
 import Data.Monoid (guard)
 import Display (Move_DisplaySquare(..), FilledOpponent_DisplaySquare(..))
 import GameHistory (undoHistoryOnce)
@@ -28,7 +28,7 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Helper as HLPR
 import NavbarHTML (navbar_HTML)
-import Player (Player(..), isPlayer_Person)
+import Player (isPlayer_Person)
 import Query (Query(..))
 import Sequencer (moveSequence, advanceHistory, mbSuggestedMove, mbCurrentPlayer)
 import SettingsDefaults as DFLT
@@ -37,6 +37,7 @@ import State (State, initialState)
 import StatusStartRestart (Status_StartRestart(..))
 import Type.Data.Boolean (kind Boolean)
 import UnusedDiskHTML (unusedDisk_HTML)
+import EditSetting (EditPlayer(..), toEditPlayers, toPlayers)
 
 type Effects eff = ( dom :: DOM, console :: CONSOLE, random :: RANDOM | eff )   
 
@@ -54,7 +55,7 @@ component =
     render :: State -> H.ComponentHTML Query
     render state =
         HH.div 
-            ( guard isEvent_MouseUp_Anywhere 
+            ( guard isEvent_MouseUp_Anywhere
                 [ HE.onMouseUp $ HE.input_ $ MouseUp_Anywhere ]           
             )        
             [ navbar_HTML state
@@ -66,27 +67,23 @@ component =
                 , dashboard_HTML state   
                 , dashboardFooter_HTML state                          
                 ]   
-            , settingsModal_HTML state
-            , confirmModal_HTML isShow_RestartModal "New game" Click_Confirm_Restart Click_Cancel_Restart
-            , confirmModal_HTML isShow_ResetToDefaultsModal "Reset to Defaults" Click_Confirm_ResetToDefaults Click_Cancel_ResetToDefaults
+
+            , settingsModal_HTML state            
+            , confirmModal_HTML isShowModal_Restart "New game" Click_Confirm_Restart Click_Cancel_Restart
+            , confirmModal_HTML state.isShowModal_Confirm_Settings_Save "Save Changes" Click_Settings_Save_Confirm Click_Settings_Save_Cancel
+            , confirmModal_HTML state.isShowModal_Confirm_Settings_Cancel "Cancel Changes" Click_Settings_Cancel_Confirm Click_Settings_Cancel_Cancel
+            , confirmModal_HTML state.isShowModal_Confirm_Settings_Reset "Reset to Defaults" Click_Settings_Reset_Confirm Click_Settings_Reset_Cancel
             ]
         where 
 
         isEvent_MouseUp_Anywhere :: Boolean
-        isEvent_MouseUp_Anywhere =
-            case mbCurrentPlayer state.players $ HLPR.gameState state of
-                Just player -> isPlayer_Person player
-                Nothing -> false
+        isEvent_MouseUp_Anywhere = 
+            maybe false isPlayer_Person $ mbCurrentPlayer state.players $ HLPR.gameState state 
 
 
-        isShow_RestartModal :: Boolean
-        isShow_RestartModal =
+        isShowModal_Restart :: Boolean
+        isShowModal_Restart =
             state.status_StartRestart == AwaitingRestart
-
-
-        isShow_ResetToDefaultsModal :: Boolean
-        isShow_ResetToDefaultsModal =
-            state.isShow_ResetToDefaultsModal
 
 
     eval :: Query ~> H.ComponentDSL State Query Void (Aff (Effects eff))
@@ -203,75 +200,143 @@ component =
 
             pure next
 
-        Click_FlipCounts next -> do
-            isShow_FlipCounts <- H.gets _.isShow_FlipCounts  
+        Click_Cancel_Restart next -> do
             H.modify (_ 
-                { isShow_FlipCounts = not isShow_FlipCounts
+                { status_StartRestart = Started
                 }
-            )
+            )         
             pure next
 
-        Click_Open_Settings next -> do
-            H.modify (_ 
-                { isActive_SettingsModal = true
-                }
-            )        
-            pure next
+        Click_Confirm_Restart next -> do 
+            -- Keep player settings
 
-        Click_Close_Settings next -> do
-            H.modify (_ 
-                { isActive_SettingsModal = false
-                }
-            )        
-            pure next
-
-        Click_Settings color next -> do
-            H.modify (_ 
-                { activeSettingsColor = color
-                }
-            )        
-            pure next
-
-        Click_Settings_Computer color next -> do      
             players <- H.gets _.players 
-            let player' = Player color DFLT.defaultPlayerType_Computer  
-            let players' = setItemColored color players player'
+            settings_PlayerColor <- H.gets _.settings_PlayerColor 
 
+            H.put initialState   
             H.modify (_ 
-                { players = players' 
-                , mb_SuggestedMove = Nothing
+                { players = players
+                , settings_PlayerColor = settings_PlayerColor
                 }
-            )  
+            )                    
             pure next
 
-        Click_Settings_Person color next -> do     
-            players <- H.gets _.players 
-            gameHistory <- H.gets _.gameHistory  
 
-            let player' = Player color DFLT.defaultPlayerType_Person            
-            let players' = setItemColored color players player'
+        Click_Settings_Open next -> do
+            players <- H.gets _.players  
+            let editPlayers = toEditPlayers players
 
             H.modify (_ 
-                { players = players'
-                , mb_SuggestedMove = mbSuggestedMove players' gameHistory
+                { editPlayers = editPlayers
+                , isShowModal_Settings = true
                 }
-            )  
+            )        
             pure next
 
-        Click_ComputerProceed next -> do
+        Click_Settings_Save next -> do
+            H.modify (_ 
+                { isShowModal_Confirm_Settings_Save = true 
+                }
+            )        
+            pure next            
+
+        Click_Settings_Save_Confirm next -> do
+            editPlayers <- H.gets _.editPlayers 
+            let players = toPlayers editPlayers
+
+            H.modify (_ 
+                { players = players
+                , isShowModal_Confirm_Settings_Save = false
+                , isShowModal_Settings = false
+                }
+            )    
+
             gameHistory <- H.gets _.gameHistory             
             players <- H.gets _.players   
             gameHistory' <- liftEff $ moveSequence players gameHistory
 
             H.modify (_ 
                 { gameHistory = gameHistory'
+                , mb_SuggestedMove = mbSuggestedMove players gameHistory'
                 }
-            )         
+            )              
+
             pure next
 
-        PreventDefault event next -> do
-            H.liftEff $ preventDefault event
+        Click_Settings_Save_Cancel next -> do
+            H.modify (_ 
+                { isShowModal_Confirm_Settings_Save = false
+                }
+            )                
+            pure next 
+
+        Click_Settings_Cancel isPendingChanges next -> do
+            if isPendingChanges
+                then do
+                    H.modify (_ 
+                        { isShowModal_Confirm_Settings_Cancel = true
+                        }
+                    )
+                else do
+                    H.modify (_ 
+                        { isShowModal_Settings = false
+                        }   
+                    )       
             pure next
+
+        Click_Settings_Cancel_Confirm next -> do
+            H.modify (_ 
+                { isShowModal_Confirm_Settings_Cancel = false
+                , isShowModal_Settings = false
+                }
+            )                
+            pure next
+
+        Click_Settings_Cancel_Cancel next -> do
+            H.modify (_ 
+                { isShowModal_Confirm_Settings_Cancel = false
+                }
+            )                
+            pure next 
+
+        Click_Settings_Reset next -> do
+            H.modify (_ 
+                { isShowModal_Confirm_Settings_Reset = true 
+                }
+            )                
+            pure next
+
+        Click_Settings_Reset_Confirm next -> do
+            let editPlayers = toEditPlayers DFLT.defaultPlayers
+
+            H.modify (_ 
+                { editPlayers = editPlayers
+                , isShowModal_Confirm_Settings_Reset = false              
+                }
+            )                
+            pure next
+
+        Click_Settings_Reset_Cancel next -> do
+            H.modify (_ 
+                { isShowModal_Confirm_Settings_Reset = false
+                }
+            )                
+            pure next 
+
+        Click_Settings_PlayerColor color next -> do 
+            H.modify (_ 
+                { settings_PlayerColor = color
+                }
+            )        
+            pure next
+
+        ModifySettings color f next -> do
+            editPlayers <- H.gets _.editPlayers  
+            let (EditPlayer _ rec) = getItemColored color editPlayers
+            let editPlayer = EditPlayer color $ f rec
+            let editPlayers' = setItemColored color editPlayers editPlayer
+            H.modify (_ { editPlayers = editPlayers' })  
+            pure next          
 
         Undo next -> do
             gameHistory <- H.gets _.gameHistory
@@ -288,49 +353,27 @@ component =
                         , mb_SuggestedMove = mbSuggestedMove players gameHistory'
                         }
                     )
-                    pure next
+                    pure next    
 
-        Click_Cancel_Restart next -> do
+        Click_FlipCounts next -> do
+            isShow_FlipCounts <- H.gets _.isShow_FlipCounts  
             H.modify (_ 
-                { status_StartRestart = Started
+                { isShow_FlipCounts = not isShow_FlipCounts
+                }
+            )
+            pure next
+
+        Click_ComputerProceed next -> do
+            gameHistory <- H.gets _.gameHistory             
+            players <- H.gets _.players   
+            gameHistory' <- liftEff $ moveSequence players gameHistory
+
+            H.modify (_ 
+                { gameHistory = gameHistory'
                 }
             )         
             pure next
 
-        Click_Confirm_Restart next -> do 
-            -- Keep player settings
-
-            players <- H.gets _.players 
-            activeSettingsColor <- H.gets _.activeSettingsColor 
-
-            H.put initialState   
-            H.modify (_ 
-                { players = players
-                , activeSettingsColor = activeSettingsColor
-                }
-            )                    
+        PreventDefault event next -> do
+            H.liftEff $ preventDefault event
             pure next
-
-        Click_ResetSettingsToDefaults next -> do
-            H.modify (_ 
-                { isShow_ResetToDefaultsModal = true 
-                }
-            )                
-            pure next
-
-        Click_Confirm_ResetToDefaults next -> do
-            H.modify (_ 
-                { players = DFLT.defaultPlayers 
-                , isShow_ResetToDefaultsModal = false
-                }
-            )                
-            pure next
-
-        Click_Cancel_ResetToDefaults next -> do
-            H.modify (_ 
-                { isShow_ResetToDefaultsModal = false
-                }
-            )                
-            pure next            
-
-            
