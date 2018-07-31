@@ -2,9 +2,7 @@
 
 Rules: http://www.boardgamecapital.com/game_rules/othello.pdf
 
-(Rewrite of CLI-based https://github.com/pdavidow/oth into Purescript)
-
-Work in progress
+Heuristic: https://kartikkukreja.wordpress.com/2013/03/30/heuristic-function-for-reversiothello/
 
 --------------------------------
 
