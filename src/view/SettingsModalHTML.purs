@@ -262,16 +262,16 @@ settingsModal_HTML state =
 
 
         f :: String -> (SearchDepth -> Boolean) -> (SearchDepth -> EditPlayerTypeRec -> EditPlayerTypeRec) -> SearchDepth -> Int -> H.ComponentHTML Query
-        f widgetSetName isChecked modifier depth n =
+        f widgetSetName' isChecked' modifier' depth n = -- prime notation is to get rid of shadowing warnings
             HH.label 
                 [ HP.classes [ HH.ClassName "radio" ]                            
                 ]
                 [ HH.span_
                     [ HH.input 
                         [ HP.type_ DOMT.InputRadio
-                        , HP.name widgetSetName   
-                        , HP.checked $ isChecked depth 
-                        , HE.onClick $ HE.input_ $ ModifySettings state.settings.selectedColor $ modifier depth  
+                        , HP.name widgetSetName'   
+                        , HP.checked $ isChecked' depth 
+                        , HE.onClick $ HE.input_ $ ModifySettings state.settings.selectedColor $ modifier' depth  
                         ]                                
                     , HH.text $ show n 
                     ] 

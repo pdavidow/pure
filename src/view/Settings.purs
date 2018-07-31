@@ -52,9 +52,9 @@ defaultRec =
 
 toEditPlayer :: PLYR.Player -> EditPlayer
 toEditPlayer (PLYR.Player color playerType) =
-    EditPlayer color rec
+    EditPlayer color x
     where 
-        rec = 
+        x = 
             case playerType of 
                 PLYR.Computer rec ->
                     defaultRec
