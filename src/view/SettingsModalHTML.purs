@@ -13,7 +13,7 @@ import Data.Monoid (guard)
 import Disk (Color(..))
 import Display (isActiveClass_Tag, isInvisibleClass_Tag)
 import DisplayConstants as DC
-import EditSetting (EditPlayer(..), EditPlayerType(..), EditPlayerTypeRec, toPlayers)
+import Settings (EditPlayer(..), EditPlayerType(..), EditPlayerTypeRec, toPlayers) 
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -26,9 +26,10 @@ import SettingsDefaults as DFLT
 import State (State)
 import Type.Data.Boolean (kind Boolean)
 
+
 isPendingChanges :: State -> Boolean
 isPendingChanges state =
-    state.players /= toPlayers state.editPlayers 
+    state.players /= toPlayers state.settings.players   
   
 
 settingsModal_HTML :: State -> H.ComponentHTML Query 
@@ -88,24 +89,24 @@ settingsModal_HTML state =
             ]
 
 
-    body_Tabs_HTML :: H.ComponentHTML Query
+    body_Tabs_HTML :: H.ComponentHTML Query 
     body_Tabs_HTML =
         HH.div
             [ HP.classes [ HH.ClassName "tabs is-boxed" ]                            
             ]
             [ HH.ul_
                 [ HH.li
-                    [ HP.classes [ HH.ClassName $ "b " <> (isActiveClass_Tag $ state.settings_PlayerColor == Black) ]                            
+                    [ HP.classes [ HH.ClassName $ "b " <> (isActiveClass_Tag $ state.settings.selectedColor == Black) ]                            
                     ]
                     [ HH.a
-                        [ HE.onClick $ HE.input_ $ Click_Settings_PlayerColor Black ]
+                        [ HE.onClick $ HE.input_ $ Click_Settings_selectedColor Black ] 
                         [ HH.text "Black" ]
                     ]
                 , HH.li
-                    [ HP.classes [ HH.ClassName $ "b " <> (isActiveClass_Tag $ state.settings_PlayerColor == White) ]                            
+                    [ HP.classes [ HH.ClassName $ "b " <> (isActiveClass_Tag $ state.settings.selectedColor == White) ]                            
                     ]
                     [ HH.a
-                        [ HE.onClick $ HE.input_ $ Click_Settings_PlayerColor White ]
+                        [ HE.onClick $ HE.input_ $ Click_Settings_selectedColor White ]
                         [ HH.text "White" ]
                     ]                                    
                 ]
@@ -132,7 +133,7 @@ settingsModal_HTML state =
                                 [ HP.type_ DOMT.InputRadio
                                 , HP.name "PlayerType"
                                 , HP.checked isSelected_Computer
-                                , HE.onClick $ HE.input_ $ ModifySettings state.settings_PlayerColor $ \ r -> r {playerType = EditComputer} 
+                                , HE.onClick $ HE.input_ $ ModifySettings state.settings.selectedColor $ \ r -> r {playerType = EditComputer} 
                                 , HP.disabled isDisabled_PlayerType 
                                 ]                               
                             , HH.text "Computer" 
@@ -148,7 +149,7 @@ settingsModal_HTML state =
                                 [ HP.type_ DOMT.InputRadio
                                 , HP.name "PlayerType" 
                                 , HP.checked isSelected_Person
-                                , HE.onClick $ HE.input_ $ ModifySettings state.settings_PlayerColor $ \ r -> r {playerType = EditPerson} 
+                                , HE.onClick $ HE.input_ $ ModifySettings state.settings.selectedColor $ \ r -> r {playerType = EditPerson} 
                                 , HP.disabled isDisabled_PlayerType
                                 ]                               
                             , HH.text "Person" 
@@ -174,7 +175,7 @@ settingsModal_HTML state =
                             [ HP.type_ DOMT.InputRadio
                             , HP.name "ComputerStrategy"  
                             , HP.checked $ editRec.computer_isRandomPick
-                            , HE.onClick $ HE.input_ $ ModifySettings state.settings_PlayerColor $ \ r -> r {computer_isRandomPick = true}  
+                            , HE.onClick $ HE.input_ $ ModifySettings state.settings.selectedColor $ \ r -> r {computer_isRandomPick = true}  
                             ]                               
                         , HH.text "Random"  
                         ] 
@@ -187,10 +188,10 @@ settingsModal_HTML state =
                             [ HP.type_ DOMT.InputRadio
                             , HP.name "ComputerStrategy"  
                             , HP.checked isSelected_ComputerDetails_SearchDepth
-                            , HE.onClick $ HE.input_ $ ModifySettings state.settings_PlayerColor $ \ r -> r {computer_isRandomPick = false} 
+                            , HE.onClick $ HE.input_ $ ModifySettings state.settings.selectedColor $ \ r -> r {computer_isRandomPick = false} 
                             ]                               
                         , HH.text "Search" 
-                        ] 
+                        ]  
                     ]                     
                 ]   
             , HH.section
@@ -226,7 +227,7 @@ settingsModal_HTML state =
                     [ HH.input 
                         [ HP.type_ DOMT.InputCheckbox
                         , HP.checked $ editRec.person_isAutoSuggest
-                        , HE.onClick $ HE.input_ $ ModifySettings state.settings_PlayerColor $ \ r -> r {person_isAutoSuggest = not editRec.person_isAutoSuggest}  
+                        , HE.onClick $ HE.input_ $ ModifySettings state.settings.selectedColor $ \ r -> r {person_isAutoSuggest = not editRec.person_isAutoSuggest}  
                         ]                               
                     , HH.text "Auto Suggest"  
                     ] 
@@ -262,7 +263,7 @@ settingsModal_HTML state =
 
             f :: String -> (SearchDepth -> Boolean) -> (SearchDepth -> EditPlayerTypeRec -> EditPlayerTypeRec) -> SearchDepth -> Int -> H.ComponentHTML Query
             f widgetSetName isChecked modifier depth n =
-                HH.label
+                HH.label 
                     [ HP.classes [ HH.ClassName "radio" ]                            
                     ]
                     [ HH.span_
@@ -270,7 +271,7 @@ settingsModal_HTML state =
                             [ HP.type_ DOMT.InputRadio
                             , HP.name widgetSetName   
                             , HP.checked $ isChecked depth 
-                            , HE.onClick $ HE.input_ $ ModifySettings state.settings_PlayerColor $ modifier depth  
+                            , HE.onClick $ HE.input_ $ ModifySettings state.settings.selectedColor $ modifier depth  
                             ]                                
                         , HH.text $ show n 
                         ] 
@@ -304,7 +305,7 @@ settingsModal_HTML state =
 
     playerForActiveSetting :: EditPlayer
     playerForActiveSetting =
-        getItemColored (state.settings_PlayerColor) state.editPlayers
+        getItemColored (state.settings.selectedColor) state.settings.players
 
 
     editRec :: EditPlayerTypeRec
@@ -319,8 +320,8 @@ settingsModal_HTML state =
 
     isDisabled_ResetButton :: Boolean
     isDisabled_ResetButton =
-        HLPR.isGameStarted state ||
-            toPlayers state.editPlayers == DFLT.defaultPlayers 
+        HLPR.isGameStarted state ||  
+            (toPlayers state.settings.players == DFLT.defaultPlayers)
 
 
     isDisabled_PlayerType :: Boolean
@@ -330,7 +331,7 @@ settingsModal_HTML state =
 
     isSelected_ComputerDetails_SearchDepth :: Boolean
     isSelected_ComputerDetails_SearchDepth =
-        not editRec.computer_isRandomPick  
+        not editRec.computer_isRandomPick   
 
 
     isSelected_PersonDetails_SearchDepth :: Boolean

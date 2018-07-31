@@ -1,5 +1,6 @@
-module EditSetting
-    ( EditPlayer(..)
+module Settings
+    ( SettingsRec
+    , EditPlayer(..)
     , EditPlayerType(..)
     , EditPlayerTypeRec
     , EditPlayers
@@ -15,6 +16,11 @@ import Disk (Color)
 import Player as PLYR
 import Search (SearchDepth)
 import SettingsDefaults as DFLT
+
+type SettingsRec =   
+    { selectedColor :: Color
+    , players :: EditPlayers
+    }
 
 data EditPlayer = EditPlayer Color EditPlayerTypeRec
 

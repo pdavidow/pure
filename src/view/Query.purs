@@ -6,7 +6,7 @@ module Query
 import DOM.Event.Event (Event)
 import Disk (Color)
 import Display as DISP
-import EditSetting (EditPlayerTypeRec) 
+import Settings (EditPlayerTypeRec)   
 
 
 data Query a
@@ -45,7 +45,7 @@ data Query a
     | Click_Settings_Reset_Cancel a    
     -----------
     | ModifySettings Color (EditPlayerTypeRec -> EditPlayerTypeRec) a
-    | Click_Settings_PlayerColor Color a    
+    | Click_Settings_selectedColor Color a    
     -----------
 
     | Undo a    

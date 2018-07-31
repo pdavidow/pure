@@ -10,7 +10,7 @@ import Data.List (List(Nil))
 import Data.Maybe (Maybe(..))
 import Disk (Color(..))
 import Display (Move_DisplaySquare)
-import EditSetting (EditPlayers, toEditPlayers)
+import Settings (SettingsRec, toEditPlayers)    
 import GameHistory (GameHistory, makeHistory)
 import Player (Players)
 import Position (Position)
@@ -30,8 +30,7 @@ type State =
     , mb_SuggestedMove :: Maybe Move
     , isShow_FlipCounts :: Boolean
 
-    , editPlayers :: EditPlayers
-    , settings_PlayerColor :: Color
+    , settings :: SettingsRec
     , isShowModal_Settings :: Boolean    
     , isShowModal_Confirm_Settings_Save :: Boolean
     , isShowModal_Confirm_Settings_Cancel :: Boolean    
@@ -55,8 +54,7 @@ initialState =
     , mb_SuggestedMove: mb_SuggestedMove
     , isShow_FlipCounts: false
 
-    , editPlayers: editPlayers
-    , settings_PlayerColor: Black 
+    , settings: settings
     , isShowModal_Settings: false   
     , isShowModal_Confirm_Settings_Save: false
     , isShowModal_Confirm_Settings_Cancel: false 
@@ -66,8 +64,15 @@ initialState =
     , isAwaitingConfirm_ResetSettingsToDefaults: false
     , status_StartRestart: NotStarted          
     }
+
     where 
         players = DFLT.defaultPlayers 
-        editPlayers = toEditPlayers players
+
+        settings = 
+            { selectedColor: Black
+            , players: toEditPlayers players
+            }
+
         gameHistory = makeHistory 
+        
         mb_SuggestedMove = mbSuggestedMove players gameHistory    

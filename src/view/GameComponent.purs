@@ -37,7 +37,7 @@ import State (State, initialState)
 import StatusStartRestart (Status_StartRestart(..))
 import Type.Data.Boolean (kind Boolean)
 import UnusedDiskHTML (unusedDisk_HTML)
-import EditSetting (EditPlayer(..), toEditPlayers, toPlayers)
+import Settings (EditPlayer(..), toEditPlayers, toPlayers)
 
 type Effects eff = ( dom :: DOM, console :: CONSOLE, random :: RANDOM | eff )   
 
@@ -208,15 +208,15 @@ component =
             pure next
 
         Click_Confirm_Restart next -> do 
-            -- Keep player settings
+            -- Keep settings
 
             players <- H.gets _.players 
-            settings_PlayerColor <- H.gets _.settings_PlayerColor 
+            settings <- H.gets _.settings
 
             H.put initialState   
             H.modify (_ 
                 { players = players
-                , settings_PlayerColor = settings_PlayerColor
+                , settings = settings
                 }
             )                    
             pure next
@@ -227,7 +227,7 @@ component =
             let editPlayers = toEditPlayers players
 
             H.modify (_ 
-                { editPlayers = editPlayers
+                { settings {players = editPlayers}
                 , isShowModal_Settings = true
                 }
             )        
@@ -241,7 +241,7 @@ component =
             pure next            
 
         Click_Settings_Save_Confirm next -> do
-            editPlayers <- H.gets _.editPlayers 
+            editPlayers <- H.gets _.settings.players 
             let players = toPlayers editPlayers
 
             H.modify (_ 
@@ -251,7 +251,7 @@ component =
                 }
             )    
 
-            state <- H.get
+            state <- H.get 
             when (HLPR.isGameStarted state) do
                 gameHistory <- H.gets _.gameHistory             
                 samePlayers <- H.gets _.players -- retreive to play it safe  
@@ -312,7 +312,7 @@ component =
             let editPlayers = toEditPlayers DFLT.defaultPlayers
 
             H.modify (_ 
-                { editPlayers = editPlayers
+                { settings {players = editPlayers}
                 , isShowModal_Confirm_Settings_Reset = false              
                 }
             )                
@@ -325,19 +325,19 @@ component =
             )                
             pure next 
 
-        Click_Settings_PlayerColor color next -> do 
+        Click_Settings_selectedColor color next -> do 
             H.modify (_ 
-                { settings_PlayerColor = color
+                { settings {selectedColor = color}
                 }
             )        
             pure next
 
         ModifySettings color f next -> do
-            editPlayers <- H.gets _.editPlayers  
+            editPlayers <- H.gets _.settings.players  
             let (EditPlayer _ rec) = getItemColored color editPlayers
             let editPlayer = EditPlayer color $ f rec
             let editPlayers' = setItemColored color editPlayers editPlayer
-            H.modify (_ { editPlayers = editPlayers' })  
+            H.modify (_ { settings {players = editPlayers'} })  
             pure next          
 
         Undo next -> do
