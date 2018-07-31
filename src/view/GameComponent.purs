@@ -254,12 +254,12 @@ component =
             state <- H.get
             when (HLPR.isGameStarted state) do
                 gameHistory <- H.gets _.gameHistory             
-                players <- H.gets _.players   
-                gameHistory' <- liftEff $ moveSequence players gameHistory
+                samePlayers <- H.gets _.players -- retreive to play it safe  
+                gameHistory' <- liftEff $ moveSequence samePlayers gameHistory
 
                 H.modify (_ 
                     { gameHistory = gameHistory'
-                    , mb_SuggestedMove = mbSuggestedMove players gameHistory'
+                    , mb_SuggestedMove = mbSuggestedMove samePlayers gameHistory'
                     }
                 )              
 

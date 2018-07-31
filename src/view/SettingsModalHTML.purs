@@ -204,27 +204,14 @@ settingsModal_HTML state =
                     , HH.div    
                         [ HP.classes [ HH.ClassName "control" ]                                               
                         ]   
-                        (searchOptions body_ComputerDetails_SearchDepthChoice_HTML)    
+                        (searchOptions -- todo refactor
+                            "ComputerSearchDepth"
+                            (\ depth -> editRec.computer_searchDepth == depth)
+                            (\ depth r -> r {computer_searchDepth = depth})
+                        )    
                     ]
                 ]   
-            ]
-
-
-    body_ComputerDetails_SearchDepthChoice_HTML :: SearchDepth -> Int -> H.ComponentHTML Query
-    body_ComputerDetails_SearchDepthChoice_HTML depth n =
-        HH.label
-            [ HP.classes [ HH.ClassName "radio" ]                            
-            ]
-            [ HH.span_
-                [ HH.input 
-                    [ HP.type_ DOMT.InputRadio
-                    , HP.name "Depth"  
-                    , HP.checked $ editRec.computer_searchDepth == depth
-                    , HE.onClick $ HE.input_ $ ModifySettings state.settings_PlayerColor $ \ r -> r {computer_searchDepth = depth} 
-                    ]                                
-                , HH.text $ show n 
-                ] 
-            ]   
+            ] 
 
 
     body_PersonDetails_HTML :: H.ComponentHTML Query
@@ -255,32 +242,39 @@ settingsModal_HTML state =
                     , HH.div    
                         [ HP.classes [ HH.ClassName "control" ]                                               
                         ]                           
-                        (searchOptions body_PersonDetails_SearchDepthChoice_HTML)    
+                        (searchOptions -- todo refactor
+                            "PersonSearchDepth"
+                            (\ depth -> editRec.person_searchDepth == depth)
+                            (\ depth r -> r {person_searchDepth = depth})
+                        )    
                     ]
                 ]                 
             ]
+     
 
- 
-    searchOptions :: (SearchDepth -> Int -> H.ComponentHTML Query) -> Array (H.ComponentHTML Query)
-    searchOptions f =
-        zipWith f searchDepths $ range (1 :: Int) $ length searchDepths      
+    searchOptions :: String -> (SearchDepth -> Boolean) -> (SearchDepth -> EditPlayerTypeRec -> EditPlayerTypeRec) -> Array (H.ComponentHTML Query)
+    searchOptions widgetSetName isChecked modifier =
+        zipWith 
+            (f widgetSetName isChecked modifier) 
+            searchDepths 
+            (range (1 :: Int) $ length searchDepths)
+        where
 
-
-    body_PersonDetails_SearchDepthChoice_HTML :: SearchDepth -> Int -> H.ComponentHTML Query
-    body_PersonDetails_SearchDepthChoice_HTML depth n =
-        HH.label
-            [ HP.classes [ HH.ClassName "radio" ]                            
-            ]
-            [ HH.span_
-                [ HH.input 
-                    [ HP.type_ DOMT.InputRadio
-                    , HP.name "Depth"  
-                    , HP.checked $ editRec.person_searchDepth == depth
-                    , HE.onClick $ HE.input_ $ ModifySettings state.settings_PlayerColor $ \ r -> r {person_searchDepth = depth} 
-                    ]                                
-                , HH.text $ show n 
-                ] 
-            ]   
+            f :: String -> (SearchDepth -> Boolean) -> (SearchDepth -> EditPlayerTypeRec -> EditPlayerTypeRec) -> SearchDepth -> Int -> H.ComponentHTML Query
+            f widgetSetName isChecked modifier depth n =
+                HH.label
+                    [ HP.classes [ HH.ClassName "radio" ]                            
+                    ]
+                    [ HH.span_
+                        [ HH.input 
+                            [ HP.type_ DOMT.InputRadio
+                            , HP.name widgetSetName   
+                            , HP.checked $ isChecked depth 
+                            , HE.onClick $ HE.input_ $ ModifySettings state.settings_PlayerColor $ modifier depth  
+                            ]                                
+                        , HH.text $ show n 
+                        ] 
+                    ]   
 
 
     foot_HTML :: H.ComponentHTML Query
