@@ -41,10 +41,10 @@ dashboard_HTML state =
         <> guard (isComputerVsComputer state.players) 
         [ HH.button
             [ HP.classes [ HH.ClassName "ml4" ]
-            , HE.onClick $ HE.input_ Click_ComputerProceed
-            , HP.disabled $ isDisabled_ComputerProceed state
+            , HE.onClick $ HE.input_ Click_ComputerStep
+            , HP.disabled $ isDisabled_ComputerStep state
             ]
-            [ HH.text "Computer Proceed" ]  
+            [ HH.text "Computer Step" ]  
         ]  
         <>
         [ HH.span
@@ -54,8 +54,8 @@ dashboard_HTML state =
         ] 
 
 
-isDisabled_ComputerProceed :: State -> Boolean
-isDisabled_ComputerProceed state =  
+isDisabled_ComputerStep :: State -> Boolean
+isDisabled_ComputerStep state =  
     ( not $ HLPR.isGameStarted state )     
         || 
             ( isEndedGameState $ HLPR.gameState state )

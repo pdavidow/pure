@@ -1,6 +1,7 @@
 module Search
     ( SearchDepth(..)
     , mbBestNextMove
+    , searchDepths
     )
     where
       
@@ -22,6 +23,14 @@ data SearchDepth
 
 derive instance eqSearchDepth :: Eq SearchDepth
 
+searchDepths :: Array SearchDepth
+searchDepths = 
+    [ SearchDepth_1
+    , SearchDepth_2
+    , SearchDepth_3
+    , SearchDepth_4
+    , SearchDepth_5
+    ]
 
 depthLevel :: SearchDepth -> Int
 depthLevel searchDepth =

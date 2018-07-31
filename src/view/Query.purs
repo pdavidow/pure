@@ -24,7 +24,7 @@ data Query a
     | MouseUp_Anywhere a
 
     | Click_FlipCounts a
-    | Click_ComputerProceed a    
+    | Click_ComputerStep a    
 
     | Click_GameStartRestart a
     | Click_Confirm_Restart a

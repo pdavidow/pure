@@ -97,7 +97,7 @@ advanceHistory' count players history move = do
     let eiHistory = applyMoveOnHistory move history
     let count' = count + 1
 
-    if isRight eiHistory -- https://purescript-users.ml/t/when-do-vs-if-then-do-else/249/3
+    if isRight eiHistory
         then do 
             let history' = unsafePartial fromRight eiHistory
             let taggedState = NE.last history'

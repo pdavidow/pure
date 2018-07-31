@@ -251,15 +251,17 @@ component =
                 }
             )    
 
-            gameHistory <- H.gets _.gameHistory             
-            players <- H.gets _.players   
-            gameHistory' <- liftEff $ moveSequence players gameHistory
+            state <- H.get
+            when (HLPR.isGameStarted state) do
+                gameHistory <- H.gets _.gameHistory             
+                players <- H.gets _.players   
+                gameHistory' <- liftEff $ moveSequence players gameHistory
 
-            H.modify (_ 
-                { gameHistory = gameHistory'
-                , mb_SuggestedMove = mbSuggestedMove players gameHistory'
-                }
-            )              
+                H.modify (_ 
+                    { gameHistory = gameHistory'
+                    , mb_SuggestedMove = mbSuggestedMove players gameHistory'
+                    }
+                )              
 
             pure next
 
@@ -363,7 +365,7 @@ component =
             )
             pure next
 
-        Click_ComputerProceed next -> do
+        Click_ComputerStep next -> do
             gameHistory <- H.gets _.gameHistory             
             players <- H.gets _.players   
             gameHistory' <- liftEff $ moveSequence players gameHistory

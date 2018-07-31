@@ -2,12 +2,13 @@ module SettingsModalHTML
     ( settingsModal_HTML
     , isPendingChanges
     )
-    where      
+     where      
 
 import Prelude
 
-import BlackWhite (getItemColored) 
+import BlackWhite (getItemColored)
 import DOM.HTML.Indexed.InputType as DOMT
+import Data.Array (length, range, zipWith)
 import Data.Monoid (guard)
 import Disk (Color(..))
 import Display (isActiveClass_Tag, isInvisibleClass_Tag)
@@ -20,11 +21,11 @@ import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties.ARIA as HPA
 import Helper as HLPR
 import Query (Query(..))
-import Search (SearchDepth(..))
+import Search (SearchDepth, searchDepths)
 import SettingsDefaults as DFLT
 import State (State)
 import Type.Data.Boolean (kind Boolean)
- 
+
 isPendingChanges :: State -> Boolean
 isPendingChanges state =
     state.players /= toPlayers state.editPlayers 
@@ -203,21 +204,14 @@ settingsModal_HTML state =
                     , HH.div    
                         [ HP.classes [ HH.ClassName "control" ]                                               
                         ]   
-                        
-                        -- todo REFACTOR  
-                        [ body_ComputerDetails_SearchDepthChoice_HTML SearchDepth_1 "1"
-                        , body_ComputerDetails_SearchDepthChoice_HTML SearchDepth_2 "2"
-                        , body_ComputerDetails_SearchDepthChoice_HTML SearchDepth_3 "3"
-                        , body_ComputerDetails_SearchDepthChoice_HTML SearchDepth_4 "4"
-                        , body_ComputerDetails_SearchDepthChoice_HTML SearchDepth_5 "5"                                      
-                        ]     
+                        (searchOptions body_ComputerDetails_SearchDepthChoice_HTML)    
                     ]
                 ]   
             ]
 
 
-    body_ComputerDetails_SearchDepthChoice_HTML :: SearchDepth -> String -> H.ComponentHTML Query
-    body_ComputerDetails_SearchDepthChoice_HTML depth name =
+    body_ComputerDetails_SearchDepthChoice_HTML :: SearchDepth -> Int -> H.ComponentHTML Query
+    body_ComputerDetails_SearchDepthChoice_HTML depth n =
         HH.label
             [ HP.classes [ HH.ClassName "radio" ]                            
             ]
@@ -228,7 +222,7 @@ settingsModal_HTML state =
                     , HP.checked $ editRec.computer_searchDepth == depth
                     , HE.onClick $ HE.input_ $ ModifySettings state.settings_PlayerColor $ \ r -> r {computer_searchDepth = depth} 
                     ]                                
-                , HH.text name 
+                , HH.text $ show n 
                 ] 
             ]   
 
@@ -260,22 +254,20 @@ settingsModal_HTML state =
                         [ HH.text "Search Depth" ]  
                     , HH.div    
                         [ HP.classes [ HH.ClassName "control" ]                                               
-                        ]   
-                        
-                        -- todo REFACTOR  
-                        [ body_PersonDetails_SearchDepthChoice_HTML SearchDepth_1 "1"
-                        , body_PersonDetails_SearchDepthChoice_HTML SearchDepth_2 "2"
-                        , body_PersonDetails_SearchDepthChoice_HTML SearchDepth_3 "3"
-                        , body_PersonDetails_SearchDepthChoice_HTML SearchDepth_4 "4"
-                        , body_PersonDetails_SearchDepthChoice_HTML SearchDepth_5 "5"                                      
-                        ]     
+                        ]                           
+                        (searchOptions body_PersonDetails_SearchDepthChoice_HTML)    
                     ]
                 ]                 
             ]
 
+ 
+    searchOptions :: (SearchDepth -> Int -> H.ComponentHTML Query) -> Array (H.ComponentHTML Query)
+    searchOptions f =
+        zipWith f searchDepths $ range (1 :: Int) $ length searchDepths      
 
-    body_PersonDetails_SearchDepthChoice_HTML :: SearchDepth -> String -> H.ComponentHTML Query
-    body_PersonDetails_SearchDepthChoice_HTML depth name =
+
+    body_PersonDetails_SearchDepthChoice_HTML :: SearchDepth -> Int -> H.ComponentHTML Query
+    body_PersonDetails_SearchDepthChoice_HTML depth n =
         HH.label
             [ HP.classes [ HH.ClassName "radio" ]                            
             ]
@@ -283,10 +275,10 @@ settingsModal_HTML state =
                 [ HH.input 
                     [ HP.type_ DOMT.InputRadio
                     , HP.name "Depth"  
-                    , HP.checked $ editRec.computer_searchDepth == depth
+                    , HP.checked $ editRec.person_searchDepth == depth
                     , HE.onClick $ HE.input_ $ ModifySettings state.settings_PlayerColor $ \ r -> r {person_searchDepth = depth} 
                     ]                                
-                , HH.text name 
+                , HH.text $ show n 
                 ] 
             ]   
 
