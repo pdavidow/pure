@@ -1,6 +1,6 @@
 module Sequencer
     ( moveSequence
-    , advanceHistory
+    , advanceHistoryFromPersonMove
     , mbCurrentPlayer
     , unsafe_CurrentPlayer
     , mbOpponentPlayer
@@ -61,14 +61,14 @@ moveSequence history =
 
             count = 
                 if (isComputerVsComputer players) then 
-                    1 
+                    2
                 else 
-                    0    
+                    1    
 
 
 moveSequence' :: forall eff. Int -> History -> Eff (console :: CONSOLE, random :: RANDOM | eff) History
 moveSequence' count history = do
-    if count > 1 -- only done for the sake of ComputerVsComputer to user-step each move
+    if count > 2
         then do
             pure history 
 
@@ -106,17 +106,17 @@ moveSequence' count history = do
                             pure history
 
 
-advanceHistory :: forall eff. History -> Move -> Eff (console :: CONSOLE, random :: RANDOM | eff) History
-advanceHistory history move =
-    -- only called for person move
+advanceHistoryFromPersonMove :: forall eff. History -> Move -> Eff (console :: CONSOLE, random :: RANDOM | eff) History
+advanceHistoryFromPersonMove history move =
+
     advanceHistory' count history move
         where 
             players = (seqRec (NE.last history)).players
             count = 
                 if (isPersonVsPerson players) then 
+                    1
+                else -- must be isPersonVsComputer 
                     0
-                else -- must be isPersonVsComputer todo ????????????????????????????
-                    -1
 
 
 advanceHistory' :: forall eff. Int -> History -> Move -> Eff (console :: CONSOLE, random :: RANDOM | eff) History

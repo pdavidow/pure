@@ -324,8 +324,9 @@ settingsModal_HTML state =
 
     isDisabled_ResetButton :: Boolean
     isDisabled_ResetButton =
-        HLPR.isGameStarted state ||  
-            (toPlayers players == DFLT.defaultPlayers)
+        HLPR.isGameEnded state 
+        ||  
+        (toPlayers players == DFLT.defaultPlayers)
 
 
     isDisabled_PlayerType :: Boolean
@@ -362,4 +363,6 @@ settingsModal_HTML state =
 
     isPendingChanges :: Boolean
     isPendingChanges =
-        (HLPR.sequenceStateRecOn state).players /= toPlayers players           
+        (not $ HLPR.isGameEnded state)
+        &&
+        ( (HLPR.sequenceStateRecOn state).players /= toPlayers players )          

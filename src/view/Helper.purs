@@ -1,6 +1,7 @@
 module Helper
     ( gameStateOn
     , isGameStarted
+    , isGameEnded
     , isHistoryUndoable
     , isMove_FocusedMoveSquare
     , isOutflankSquare_MouseDownMoveSquare
@@ -20,7 +21,7 @@ import Data.List (elem)
 import Data.List.NonEmpty as NE
 import Data.Maybe (Maybe(..), isJust, maybe)
 import Display as DSP
-import GameState (Tagged_GameState)
+import GameState (Tagged_GameState, isEndedGameState)
 import History (History, undoHistoryOnce)
 import SequenceState (SequenceStateRec, SequenceState, seqRec)
 import State (State)
@@ -45,6 +46,11 @@ sequenceStateRecOn state =
 isGameStarted :: State -> Boolean
 isGameStarted state = 
     state.status_StartRestart /= NotStarted
+
+
+isGameEnded :: State -> Boolean
+isGameEnded state = 
+    isEndedGameState $ gameStateOn state
 
 
 isHistoryUndoable :: History -> Boolean

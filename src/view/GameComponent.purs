@@ -33,7 +33,7 @@ import NavbarHTML (navbar_HTML)
 import Player (isPlayer_Person)
 import Query (Query(..))
 import SequenceState (SequenceStateRec, SequenceState(..), seqRec) 
-import Sequencer (moveSequence, advanceHistory, mbCurrentPlayer)
+import Sequencer (moveSequence, advanceHistoryFromPersonMove, mbCurrentPlayer)
 import Settings (EditPlayer(..), defaultSettingsRec, settingsRecOn, toPlayers) 
 import SettingsModalHTML (settingsModal_HTML)
 import State (State, initialState)
@@ -148,7 +148,7 @@ component =
 
                 when (mouseDown_MoveSquare == Just x) do    
                     history <- H.gets _.history   
-                    history' <- liftEff $ advanceHistory history rec.move    
+                    history' <- liftEff $ advanceHistoryFromPersonMove history rec.move    
                     H.modify (_  { history = history' } )
 
                 pure next       
