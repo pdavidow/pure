@@ -21,7 +21,6 @@ import Helper as HLPR
 import PlayerDefaults as DFLT
 import Query (Query(..))
 import Search (SearchDepth, searchDepths)
-import SequenceState (SequenceState)
 import Settings (EditPlayer(..), EditPlayers, EditPlayerType(..), EditPlayerTypeRec, toPlayers)
 import State (State)
 import Type.Data.Boolean (kind Boolean)
@@ -363,9 +362,4 @@ settingsModal_HTML state =
 
     isPendingChanges :: Boolean
     isPendingChanges =
-        sequenceState.players /= toPlayers players   
-
-
-    sequenceState :: SequenceState
-    sequenceState = 
-        HLPR.sequenceStateOn state        
+        (HLPR.sequenceStateRecOn state).players /= toPlayers players           

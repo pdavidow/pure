@@ -19,13 +19,13 @@ import Disk (Color(..), toggleColor)
 import GameState (StartGameState(StartGameState), Tagged_GameState(Tagged_EndedGameState, Tagged_MidGameState, Tagged_StartGameState), applyMoveOnGameState, colorResultingInTaggedGameState, isForfeitTurn, mbNextMoveColor_FromTaggedGameState)
 import MoveValidation (MoveValidationError, validateMove)
 import Partial.Unsafe (unsafePartial)
-import SequenceState (SequenceState, initialSequenceState)
+import SequenceState (SequenceState(..), initialSequenceState, seqRec)
 
 type History = NE.NonEmptyList SequenceState    
 
 
 makeHistory :: History
-makeHistory =
+makeHistory = 
     unsafePartial $ fromJust $ NE.fromFoldable [initialSequenceState]
 
 
@@ -33,10 +33,11 @@ applyMoveOnHistory :: Move -> History -> Either (NE.NonEmptyList MoveValidationE
 applyMoveOnHistory move history =
     let
         state = NE.last history
-        errors = validateMove move state.game
+        rec = seqRec state
+        errors = validateMove move rec.game
     in
         if null errors then
-            Right $ NE.snoc history $ state {game = applyMoveOnGameState move state.game}
+            Right $ NE.snoc history $ SequenceState $ rec {game = applyMoveOnGameState move rec.game}
         else
             Left $ unsafePartial $ fromJust $ NE.fromList errors 
 
@@ -50,7 +51,7 @@ swapLast history x =
 undoHistoryOnce :: History -> Maybe History
 undoHistoryOnce history = 
     undoHistoryOnceForColor color history
-        where color = fromMaybe Black $ mbNextMoveColor_FromTaggedGameState $ (NE.last history).game-- should never use default
+        where color = fromMaybe Black $ mbNextMoveColor_FromTaggedGameState $ (seqRec (NE.last history)).game-- should never use default
 
 
 undoHistoryOnceForColor :: Color -> History -> Maybe History
@@ -66,7 +67,7 @@ undoHistoryOnceForColor color history =
             let 
                 headState = NE.head history
             in
-                case headState.game of
+                case (seqRec headState).game of
                     Tagged_StartGameState (StartGameState rec) -> -- always the case, by definition
                         if color == rec.color then
                             NE.fromFoldable [headState]
@@ -79,7 +80,7 @@ undoHistoryOnceForColor color history =
                     Tagged_EndedGameState _ -> 
                         Nothing -- should never get here
 
-        else if isForfeitTurn lastState.game then
+        else if isForfeitTurn (seqRec lastState).game then
             NE.fromList $ NE.init history
 
         else
@@ -88,12 +89,12 @@ undoHistoryOnceForColor color history =
                 undoOnce = defer $ \ _ -> 
                     history
                         # NE.reverse
-                        # NE.dropWhile (\ x -> colorResultingInTaggedGameState x.game == toggledColor)
+                        # NE.dropWhile (\ x -> colorResultingInTaggedGameState (seqRec x).game == toggledColor)
                         # drop 1
                         # reverse
                         # NE.fromList
             in
-                case lastState.game of
+                case (seqRec lastState).game of
                     Tagged_StartGameState _ -> Nothing -- should never get here
                     Tagged_MidGameState _   -> force undoOnce
                     Tagged_EndedGameState _ -> force undoOnce                 

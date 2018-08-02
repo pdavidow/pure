@@ -4,11 +4,11 @@ module DashboardHTML
 
     where
 
-import Prelude
+import Prelude 
 
 import Data.Monoid (guard)
 import Display (gameOver_Emphasis, placedDisksStatus)
-import GameState (Tagged_GameState, isEndedGameState)
+import GameState (isEndedGameState)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -16,7 +16,7 @@ import Halogen.HTML.Properties as HP
 import Helper as HLPR
 import Player (isComputerVsComputer)
 import Query (Query(..))
-import SequenceState (SequenceState)
+import SequenceState (seqRec)
 import State (State)
 import Type.Data.Boolean (kind Boolean)
 
@@ -37,9 +37,9 @@ dashboard_HTML state =
             , HE.onClick $ HE.input_ Click_FlipCounts
             , HP.disabled $ not $ HLPR.isGameStarted state
             ]
-            [ HH.text "Flip Counts" ]   
+            [ HH.text "Flip Counts" ]    
         ]
-        <> guard (isComputerVsComputer sequenceState.players) 
+        <> guard (isComputerVsComputer rec.players) 
         [ HH.button
             [ HP.classes [ HH.ClassName "ml4" ]
             , HE.onClick $ HE.input_ Click_ComputerStep
@@ -49,24 +49,15 @@ dashboard_HTML state =
         ]  
         <>
         [ HH.span
-            [ HP.classes [ HH.ClassName $ "ml4 " <> gameOver_Emphasis gameState ] 
+            [ HP.classes [ HH.ClassName $ "ml4 " <> gameOver_Emphasis rec.game ] 
             ]
-            [ HH.text $ placedDisksStatus (HLPR.isGameStarted state) gameState]     
+            [ HH.text $ placedDisksStatus (HLPR.isGameStarted state) rec.game]     
         ]  
 
         where
-        
-            sequenceState :: SequenceState
-            sequenceState = 
-                HLPR.sequenceStateOn state 
+            rec = HLPR.sequenceStateRecOn state 
 
-
-            gameState :: Tagged_GameState
-            gameState = 
-                sequenceState.game
-
-            isDisabled_ComputerStep :: Boolean
             isDisabled_ComputerStep = 
                 (not $ HLPR.isGameStarted state) 
                 || 
-                isEndedGameState gameState 
+                isEndedGameState rec.game 

@@ -16,12 +16,12 @@ import State (State)
 import Type.Data.Boolean (kind Boolean)
 
 
-dashboardFooter_HTML :: State -> H.ComponentHTML Query 
+dashboardFooter_HTML :: State -> H.ComponentHTML Query  
 dashboardFooter_HTML state =
     HH.div
         [ HP.classes [ HH.ClassName "mt2 f3 lh-copy b" ]
         ] 
-        [ HH.text $ status state.isImminentGameStart (HLPR.isGameStarted state) sequenceState.players sequenceState.game ]  
+        [ HH.text $ status state.isImminentGameStart (HLPR.isGameStarted state) srec.players srec.game ]  
 
     where
-        sequenceState = HLPR.sequenceStateOn state 
+        srec = HLPR.sequenceStateRecOn state  

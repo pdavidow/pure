@@ -3,9 +3,9 @@ module GameComponent
     , component
     )
     where
-import Data.Tuple (Tuple(..))
+
 import Prelude
-import Debug.Trace (trace, traceAny)
+
 import BlackWhite (getItemColored, setItemColored)
 import BoardHTML (board_HTML)
 import ConfirmModalHTML (confirmModal_HTML)
@@ -32,7 +32,7 @@ import History (swapLast, undoHistoryOnce)
 import NavbarHTML (navbar_HTML)
 import Player (isPlayer_Person)
 import Query (Query(..))
-import SequenceState (SequenceState)
+import SequenceState (SequenceStateRec, SequenceState(..), seqRec) 
 import Sequencer (moveSequence, advanceHistory, mbCurrentPlayer)
 import Settings (EditPlayer(..), defaultSettingsRec, settingsRecOn, toPlayers) 
 import SettingsModalHTML (settingsModal_HTML)
@@ -70,7 +70,7 @@ component =
                 , dashboard_HTML state   
                 , dashboardFooter_HTML state                          
                 ]   
-            ] <> modals
+            ] <> modals 
         where 
 
         modals :: Array (H.ComponentHTML Query)
@@ -85,7 +85,7 @@ component =
 
         isEvent_MouseUp_Anywhere :: Boolean
         isEvent_MouseUp_Anywhere = 
-            maybe false isPlayer_Person $ mbCurrentPlayer sequenceState.players gameState 
+            maybe false isPlayer_Person $ mbCurrentPlayer srec.players gameState 
 
 
         isShowModal_Restart :: Boolean
@@ -93,12 +93,12 @@ component =
             state.status_StartRestart == AwaitingRestart
 
 
-        sequenceState :: SequenceState
-        sequenceState = HLPR.sequenceStateOn state 
-
-
         gameState :: Tagged_GameState
-        gameState = sequenceState.game            
+        gameState = srec.game        
+
+
+        srec :: SequenceStateRec 
+        srec = HLPR.sequenceStateRecOn state     
 
 
     eval :: Query ~> H.ComponentDSL State Query Void (Aff (Effects eff))
@@ -213,18 +213,14 @@ component =
                 pure next
 
             Click_Confirm_Restart next -> do 
-                -- keep players
-
                 history <- H.gets _.history
-                let sqState = NE.last history              
-                --let sqState' = sqState {players = sqState.players}
+                let sqState = NE.last history  
+                let keepPlayers = (seqRec sqState).players             
 
                 H.put initialState   
                 history' <- H.gets _.history
                 let sqState' = NE.last history' 
-                let sqState'' = sqState' {players = sqState.players}
-                let q = traceAny (Tuple "Click_Confirm_Restart history': " history') \_-> history'
-                let q1 = traceAny (Tuple "Click_Confirm_Restart swapLast history' sqState'': " $ swapLast history' sqState') \_-> swapLast history' sqState''               
+                let sqState'' = SequenceState (seqRec sqState') {players = keepPlayers}
                 H.modify (_ 
                     { history = swapLast history' sqState''
                     }
@@ -236,7 +232,7 @@ component =
                 let sqState = NE.last history 
 
                 H.modify (_ 
-                    { settings = settingsRecOn sqState.players
+                    { settings = settingsRecOn (seqRec sqState).players
                     , isShowModal_Settings = true
                     }
                 )        
@@ -254,7 +250,7 @@ component =
                 let editPlayers = settings.players 
                 history <- H.gets _.history
                 let sqState = NE.last history                 
-                let sqState' = sqState {players = toPlayers editPlayers}
+                let sqState' = SequenceState (seqRec sqState) {players = toPlayers editPlayers}
 
                 H.modify (_ 
                     { history = swapLast history sqState'

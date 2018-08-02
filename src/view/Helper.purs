@@ -8,6 +8,7 @@ module Helper
     , isSuggestedMoveSquare
     , isMove_FocusedFilledOpponentSquare
     , isOutflankSquare_FocusedFilledOpponentSquare
+    , sequenceStateRecOn
     , sequenceStateOn
     )
     where
@@ -18,22 +19,27 @@ import Board (movePosition)
 import Data.List (elem)
 import Data.List.NonEmpty as NE
 import Data.Maybe (Maybe(..), isJust, maybe)
-import Debug.Trace (traceAny)
 import Display as DSP
 import GameState (Tagged_GameState)
 import History (History, undoHistoryOnce)
-import SequenceState (SequenceState)
+import SequenceState (SequenceStateRec, SequenceState, seqRec)
 import State (State)
 import StatusStartRestart (Status_StartRestart(..))
 
+
 gameStateOn :: State -> Tagged_GameState
 gameStateOn state = 
-    (sequenceStateOn state).game       
+    (sequenceStateRecOn state).game       
 
 
 sequenceStateOn :: State -> SequenceState
 sequenceStateOn state = 
     NE.last state.history 
+
+
+sequenceStateRecOn :: State -> SequenceStateRec
+sequenceStateRecOn state = 
+    seqRec $ sequenceStateOn state 
 
 
 isGameStarted :: State -> Boolean
@@ -64,12 +70,12 @@ isOutflankSquare_FocusedMoveSquare state taggedDisplaySquare =
 
 
 isSuggestedMoveSquare :: State -> DSP.Move_DisplaySquare -> Boolean
-isSuggestedMoveSquare state (DSP.Move_DisplaySquare rec) =
+isSuggestedMoveSquare state (DSP.Move_DisplaySquare rec) = 
     maybe 
         false 
         (\ move -> move == rec.move) 
         mbSuggestedMove
-            where mbSuggestedMove = traceAny "(sequenceStateOn state).mbSuggestedMove" \_ -> (sequenceStateOn state).mbSuggestedMove   
+            where mbSuggestedMove = (seqRec (sequenceStateOn state)).mbSuggestedMove   
 
 
 isMove_FocusedFilledOpponentSquare :: State -> DSP.Move_DisplaySquare -> Boolean

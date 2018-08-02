@@ -19,7 +19,6 @@ import Data.Either (isRight, fromLeft, fromRight)
 import Data.List (index, length)
 import Data.List.NonEmpty as NE
 import Data.Maybe (Maybe, fromJust, maybe)
-import Debug.Trace (trace, traceAny)
 import Disk (toggleColor)
 import GameState (Tagged_GameState(..), mbNextMoveColor_FromTaggedGameState, nextMoves_FromTaggedGameState)
 import History (History, applyMoveOnHistory, swapLast)
@@ -27,7 +26,7 @@ import Logger (logMoveErrors)
 import Partial.Unsafe (unsafePartial)
 import Player (Player(..), PlayerType(..), Players, playerColored, setCurrentPlayerColorForSearch, isComputerVsComputer, isPersonVsPerson)
 import Search (mbBestNextMove)
-import Data.Tuple (Tuple(..))
+import SequenceState (SequenceState(..), seqRec)
 
 
 mbCurrentPlayer :: Players -> Tagged_GameState -> Maybe Player
@@ -58,7 +57,7 @@ moveSequence :: forall eff. History -> Eff (console :: CONSOLE, random :: RANDOM
 moveSequence history =
     moveSequence' count history 
         where 
-            players = (NE.last history).players
+            players = (seqRec (NE.last history)).players
 
             count = 
                 if (isComputerVsComputer players) then 
@@ -69,25 +68,26 @@ moveSequence history =
 
 moveSequence' :: forall eff. Int -> History -> Eff (console :: CONSOLE, random :: RANDOM | eff) History
 moveSequence' count history = do
-    if (traceAny (Tuple "count: " count) \_-> count) > 1 -- only done for the sake of ComputerVsComputer to user-step each move
+    if count > 1 -- only done for the sake of ComputerVsComputer to user-step each move
         then do
             pure history 
 
         else do
             let state = NE.last history
-            let (Player color playerType) = unsafe_CurrentPlayer state.players state.game
+            let srec = seqRec state
+            let (Player color playerType) = unsafe_CurrentPlayer srec.players srec.game
 
-            case traceAny (Tuple "playerType: " playerType) \_-> playerType of
+            case playerType of 
                 Computer rec -> do
                     mbMove <-
-                         if traceAny "rec.isRandomPick" \_-> rec.isRandomPick
+                         if rec.isRandomPick
                             then do 
-                                let moves = nextMoves_FromTaggedGameState state.game
+                                let moves = nextMoves_FromTaggedGameState srec.game
                                 randN <- liftEff $ randomInt 0 $ length moves - 1
                                 pure $ index moves randN 
 
                             else do
-                                pure $ mbBestNextMove rec.searchDepth $ setCurrentPlayerColorForSearch state.game color 
+                                pure $ mbBestNextMove rec.searchDepth $ setCurrentPlayerColorForSearch srec.game color 
                     
                     maybe 
                         (pure history) 
@@ -95,11 +95,11 @@ moveSequence' count history = do
                         mbMove
 
                 Person rec -> do
-                    if traceAny (Tuple "rec.isAutoSuggest: " rec.isAutoSuggest) \_-> rec.isAutoSuggest 
+                    if rec.isAutoSuggest 
                         then do
-                            let x = mbBestNextMove rec.searchDepth $ setCurrentPlayerColorForSearch state.game color
-                            let state' = state {mbSuggestedMove = trace "x" \_-> x}
-                            let history' = traceAny (Tuple "swapLast history state': " $ swapLast history state') \_-> swapLast history state'
+                            let x = mbBestNextMove rec.searchDepth $ setCurrentPlayerColorForSearch srec.game color
+                            let state' = SequenceState srec {mbSuggestedMove = x}
+                            let history' = swapLast history state'
                             pure history'
                             
                         else do
@@ -111,23 +111,23 @@ advanceHistory history move =
     -- only called for person move
     advanceHistory' count history move
         where 
-            players = (NE.last history).players
+            players = (seqRec (NE.last history)).players
             count = 
                 if (isPersonVsPerson players) then 
-                    traceAny "isPersonVsPerson players 0" \_-> 0
-                else -- must be isPersonVsComputer
-                    traceAny "isPersonVsComputer players -1" \_-> -1
+                    0
+                else -- must be isPersonVsComputer todo ????????????????????????????
+                    -1
 
 
 advanceHistory' :: forall eff. Int -> History -> Move -> Eff (console :: CONSOLE, random :: RANDOM | eff) History
 advanceHistory' count history move = do
-    let eiHistory = traceAny "applyMoveOnHistory move history" \_-> applyMoveOnHistory move history
+    let eiHistory = applyMoveOnHistory move history
     let count' = count + 1
 
     if isRight eiHistory
         then do 
             let history' = unsafePartial fromRight eiHistory
-            let taggedState = traceAny "(NE.last history').game" \_-> (NE.last history').game
+            let taggedState = (seqRec (NE.last history')).game
 
             case taggedState of 
                 Tagged_StartGameState _ -> moveSequence' count' history' -- should never get here

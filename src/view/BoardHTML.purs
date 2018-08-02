@@ -52,7 +52,7 @@ renderSquare state taggedDisplaySquare =
             ( diskChildren state taggedDisplaySquare )
         ] 
 
-
+ 
 squareProps :: _ -- todo
 squareProps state taggedDisplaySquare =
     case taggedDisplaySquare of
@@ -88,9 +88,9 @@ squareProps state taggedDisplaySquare =
                 [ HH.ClassName $ CC.fillableGridItem <> squareProps__Move_DisplaySquare state x ]                       
             , HE.onMouseEnter $ HE.input_ $ MouseEnter_MoveSquare x
             , HE.onMouseLeave $ HE.input_ $ MouseLeave_MoveSquare                      
-            , HE.onDragStart $ HE.input $ PreventDefault <<< toEvent
+            , HE.onDragStart $ HE.input $ PreventDefault <<< toEvent 
             ]
-            <> guard (isPlayer_Person $ unsafe_CurrentPlayer (HLPR.sequenceStateOn state).players $ HLPR.gameStateOn state) 
+            <> guard (isPlayer_Person $ unsafe_CurrentPlayer (HLPR.sequenceStateRecOn state).players $ HLPR.gameStateOn state) 
             [ HE.onMouseDown $ HE.input_ $ MouseDown_MoveSquare x
             , HE.onMouseUp $ HE.input_ $ MouseUp_MoveSquare x                                
             ] 
@@ -160,7 +160,7 @@ squareProps__Move_DisplaySquare state moveSquare =
             else if HLPR.isMove_FocusedFilledOpponentSquare state moveSquare then  
                 CC.moveSquareColor_FocusedFilledOpponentSquare
             else
-                CC.moveSquareColor                    
+                CC.moveSquareColor                     
 
         borderProps = 
             if HLPR.isSuggestedMoveSquare state moveSquare then

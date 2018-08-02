@@ -22,7 +22,6 @@ import Partial.Unsafe (unsafeCrashWith)
 
 type PositionRec = {x :: Int, y :: Int} -- one-based
 
--- todo just use the rec!
 newtype Position = Position PositionRec
 
 newtype PositionRow = PositionRow (List Position)
@@ -67,8 +66,8 @@ makeValidPosition rec =
 
 
 positionRec :: Position -> PositionRec
-positionRec (Position rec) = 
-    rec
+positionRec (Position x) = 
+    x
 
 
 adjacentPositions :: Position -> List Position
