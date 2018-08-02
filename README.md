@@ -13,4 +13,6 @@ psc-package install
 
 pulp browserify --to app.js
 
-npx http-server
+Start server, such as: npx http-server
+
+Open browser on: index.html
