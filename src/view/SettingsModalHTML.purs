@@ -1,36 +1,31 @@
 module SettingsModalHTML
     ( settingsModal_HTML
-    , isPendingChanges
     )
      where      
 
 import Prelude
 
 import BlackWhite (getItemColored)
+import ClassConstants as CC
 import DOM.HTML.Indexed.InputType as DOMT
 import Data.Array (length, range, zipWith)
 import Data.Monoid (guard)
 import Disk (Color(..))
 import Display (isActiveClass_Tag, isInvisibleClass_Tag)
-import DisplayConstants as DC
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties.ARIA as HPA
 import Helper as HLPR
+import PlayerDefaults as DFLT
 import Query (Query(..))
 import Search (SearchDepth, searchDepths)
-import Settings (EditPlayer(..), EditPlayerType(..), EditPlayerTypeRec, toPlayers)
-import SettingsDefaults as DFLT
+import SequenceState (SequenceState)
+import Settings (EditPlayer(..), EditPlayers, EditPlayerType(..), EditPlayerTypeRec, toPlayers)
 import State (State)
 import Type.Data.Boolean (kind Boolean)
 
-
-isPendingChanges :: State -> Boolean
-isPendingChanges state =
-    state.players /= toPlayers state.settings.players   
-  
 
 settingsModal_HTML :: State -> H.ComponentHTML Query 
 settingsModal_HTML state =
@@ -64,7 +59,7 @@ settingsModal_HTML state =
             , HH.button
                 [ HP.classes [ HH.ClassName "delete" ]
                 , HPA.label "close"
-                , HE.onClick $ HE.input_ $ Click_Settings_Cancel $ isPendingChanges state
+                , HE.onClick $ HE.input_ $ Click_Settings_Cancel isPendingChanges
                 ]
                 []
             ]
@@ -96,14 +91,14 @@ settingsModal_HTML state =
             ]
             [ HH.ul_
                 [ HH.li
-                    [ HP.classes [ HH.ClassName $ "b " <> (isActiveClass_Tag $ state.settings.selectedColor == Black) ]                            
+                    [ HP.classes [ HH.ClassName $ "b " <> (isActiveClass_Tag $ selectedColor == Black) ]                            
                     ]
                     [ HH.a
                         [ HE.onClick $ HE.input_ $ Click_Settings_selectedColor Black ] 
                         [ HH.text "Black" ]
                     ]
                 , HH.li
-                    [ HP.classes [ HH.ClassName $ "b " <> (isActiveClass_Tag $ state.settings.selectedColor == White) ]                            
+                    [ HP.classes [ HH.ClassName $ "b " <> (isActiveClass_Tag $ selectedColor == White) ]                            
                     ]
                     [ HH.a
                         [ HE.onClick $ HE.input_ $ Click_Settings_selectedColor White ]
@@ -133,8 +128,8 @@ settingsModal_HTML state =
                                 [ HP.type_ DOMT.InputRadio
                                 , HP.name "PlayerType"
                                 , HP.checked isSelected_Computer
-                                , HE.onClick $ HE.input_ $ ModifySettings state.settings.selectedColor $ \ r -> r {playerType = EditComputer} 
-                                , HP.disabled isDisabled_PlayerType 
+                                , HE.onClick $ HE.input_ $ ModifySettings selectedColor $ \ r -> r {playerType = EditComputer} 
+                                --, HP.disabled isDisabled_PlayerType 
                                 ]                               
                             , HH.text "Computer" 
                             ] 
@@ -149,8 +144,8 @@ settingsModal_HTML state =
                                 [ HP.type_ DOMT.InputRadio
                                 , HP.name "PlayerType" 
                                 , HP.checked isSelected_Person
-                                , HE.onClick $ HE.input_ $ ModifySettings state.settings.selectedColor $ \ r -> r {playerType = EditPerson} 
-                                , HP.disabled isDisabled_PlayerType
+                                , HE.onClick $ HE.input_ $ ModifySettings selectedColor $ \ r -> r {playerType = EditPerson} 
+                                --, HP.disabled isDisabled_PlayerType
                                 ]                               
                             , HH.text "Person" 
                             ] 
@@ -175,7 +170,7 @@ settingsModal_HTML state =
                             [ HP.type_ DOMT.InputRadio
                             , HP.name "ComputerStrategy"  
                             , HP.checked $ editRec.computer_isRandomPick
-                            , HE.onClick $ HE.input_ $ ModifySettings state.settings.selectedColor $ \ r -> r {computer_isRandomPick = true}  
+                            , HE.onClick $ HE.input_ $ ModifySettings selectedColor $ \ r -> r {computer_isRandomPick = true}  
                             ]                               
                         , HH.text "Random"  
                         ] 
@@ -188,7 +183,7 @@ settingsModal_HTML state =
                             [ HP.type_ DOMT.InputRadio
                             , HP.name "ComputerStrategy"  
                             , HP.checked isSelected_ComputerDetails_SearchDepth
-                            , HE.onClick $ HE.input_ $ ModifySettings state.settings.selectedColor $ \ r -> r {computer_isRandomPick = false} 
+                            , HE.onClick $ HE.input_ $ ModifySettings selectedColor $ \ r -> r {computer_isRandomPick = false} 
                             ]                               
                         , HH.text "Search" 
                         ]  
@@ -223,7 +218,7 @@ settingsModal_HTML state =
                     [ HH.input 
                         [ HP.type_ DOMT.InputCheckbox
                         , HP.checked $ editRec.person_isAutoSuggest
-                        , HE.onClick $ HE.input_ $ ModifySettings state.settings.selectedColor $ \ r -> r {person_isAutoSuggest = not editRec.person_isAutoSuggest}  
+                        , HE.onClick $ HE.input_ $ ModifySettings selectedColor $ \ r -> r {person_isAutoSuggest = not editRec.person_isAutoSuggest}  
                         ]                               
                     , HH.text "Auto Suggest"  
                     ] 
@@ -271,7 +266,7 @@ settingsModal_HTML state =
                         [ HP.type_ DOMT.InputRadio
                         , HP.name widgetSetName'   
                         , HP.checked $ isChecked' depth 
-                        , HE.onClick $ HE.input_ $ ModifySettings state.settings.selectedColor $ modifier' depth  
+                        , HE.onClick $ HE.input_ $ ModifySettings selectedColor $ modifier' depth  
                         ]                                
                     , HH.text $ show n 
                     ] 
@@ -291,7 +286,7 @@ settingsModal_HTML state =
                 [ HH.text "Save changes" ]  
             , HH.button
                 [ HP.classes [ HH.ClassName "button" ]
-                , HE.onClick $ HE.input_ $ Click_Settings_Cancel $ isPendingChanges state
+                , HE.onClick $ HE.input_ $ Click_Settings_Cancel isPendingChanges
                 ]
                 [ HH.text "Cancel" ]                      
             , HH.button
@@ -303,9 +298,19 @@ settingsModal_HTML state =
             ]
 
 
+    selectedColor :: Color
+    selectedColor =
+        state.settings.selectedColor
+
+
+    players :: EditPlayers
+    players =
+        state.settings.players
+
+
     playerForActiveSetting :: EditPlayer
     playerForActiveSetting =
-        getItemColored (state.settings.selectedColor) state.settings.players
+        getItemColored state.settings.selectedColor players
 
 
     editRec :: EditPlayerTypeRec
@@ -315,13 +320,13 @@ settingsModal_HTML state =
 
     isDisabled_SaveButton :: Boolean
     isDisabled_SaveButton =
-        not $ isPendingChanges state
+        not isPendingChanges
 
 
     isDisabled_ResetButton :: Boolean
     isDisabled_ResetButton =
         HLPR.isGameStarted state ||  
-            (toPlayers state.settings.players == DFLT.defaultPlayers)
+            (toPlayers players == DFLT.defaultPlayers)
 
 
     isDisabled_PlayerType :: Boolean
@@ -352,6 +357,15 @@ settingsModal_HTML state =
     body_PersonDetails_section_classes :: String
     body_PersonDetails_section_classes =
         if editRec.person_isAutoSuggest then 
-            "pl1 w5" <> DC.moveSquareBorder_Suggested 
+            "pl1 w5" <> CC.moveSquareBorder_Suggested 
         else 
             ""
+
+    isPendingChanges :: Boolean
+    isPendingChanges =
+        sequenceState.players /= toPlayers players   
+
+
+    sequenceState :: SequenceState
+    sequenceState = 
+        HLPR.sequenceStateOn state        

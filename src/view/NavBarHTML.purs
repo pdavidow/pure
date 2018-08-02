@@ -23,22 +23,22 @@ navbar_HTML :: State -> H.ComponentHTML Query
 navbar_HTML state =
     HH.span -- todo break out into Navbar_HTML module
         [ HP.classes [ HH.ClassName "ml3 roboto" ]
-        ] 
+        ]  
         [ HH.span
             [ HP.classes [ HH.ClassName "b" ] -- todo "black bg_white hover_white hover_bg_black" effect doesn't work  
             ]    
             [ HH.text "OTHELLO" ]  
         , HH.button 
             [ HP.classes [ HH.ClassName "ml3 button is-small is-inverted is-outlined" ]
-            , HP.disabled ( HLPR.isGameStarted state && (isStartGameState $ HLPR.gameState state) )
+            , HP.disabled ( HLPR.isGameStarted state && (isStartGameState sequenceState.game) )
             , HE.onMouseEnter $ HE.input_ $ MouseEnter_StartStopButton
             , HE.onMouseLeave $ HE.input_ $ MouseLeave_StartStopButton                    
             , HE.onClick $ HE.input_ Click_GameStartRestart
             ] 
-            [ HH.text $ nameForStartRestartButton (HLPR.isGameStarted state) state.players]
+            [ HH.text $ nameForStartRestartButton (HLPR.isGameStarted state) sequenceState.players]
         , HH.a
             [ HP.classes [ HH.ClassName "ml3" ] -- button modal-button
-            --, HP.prop (HH.PropName "data-target") DC.modalSettingsId 
+            --, HP.prop (HH.PropName "data-target") CC.modalSettingsId 
             , HPA.hasPopup "true"
             , HE.onClick $ HE.input_ Click_Settings_Open
             ]
@@ -58,3 +58,6 @@ navbar_HTML state =
             ]
             [ HH.text "GitHub" ]     
         ]    
+
+        where 
+            sequenceState = HLPR.sequenceStateOn state 

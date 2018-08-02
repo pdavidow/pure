@@ -1,4 +1,4 @@
-module SettingsDefaults
+module PlayerDefaults
     where
 
 

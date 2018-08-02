@@ -6,9 +6,9 @@ module Player
     , setCurrentPlayerColorForSearch
     , isPlayer_Person
     , isPlayer_Computer
-    -- , isPlayer_ComputerStrategy_RandomPick    
-    -- , isPlayer_ComputerStrategy_Search
     , isComputerVsComputer
+    , isPersonVsPerson
+    , isPersonVsComputer
     , blackPlayer
     , whitePlayer
     )
@@ -22,7 +22,7 @@ import GameState (Core(..), Tagged_GameState, core_FromTaggedGameState, swapCore
 import Search (SearchDepth)
 import Type.Data.Boolean (kind Boolean)
 
-
+-- todo simply turn into record?
 data Player = Player Color PlayerType
 
 data PlayerType
@@ -57,10 +57,21 @@ whitePlayer players =
     getItemWhite players
 
 
--- todo unused?
 isComputerVsComputer :: Players -> Boolean
 isComputerVsComputer players =
     (isPlayer_Computer $ blackPlayer players) && (isPlayer_Computer $ whitePlayer players)
+
+
+isPersonVsPerson :: Players -> Boolean
+isPersonVsPerson players =
+    (isPlayer_Person $ blackPlayer players) && (isPlayer_Person $ whitePlayer players)
+
+
+isPersonVsComputer :: Players -> Boolean
+isPersonVsComputer players =
+    ( (isPlayer_Person $ blackPlayer players) && (isPlayer_Computer $ whitePlayer players) )
+    ||
+    ( (isPlayer_Computer $ blackPlayer players) && (isPlayer_Person $ whitePlayer players) )
 
 
 -- todo use State monad for search...

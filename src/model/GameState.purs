@@ -47,13 +47,13 @@ import Disk (Color(..), toggleColor)
 import Position (Position, isValidPositionRec, makeValidPosition, positionRec)
 import UnusedDiskCount (UnusedDiskCounts, makeUnusedDiskCounts, transferDiskTo, decreaseByOneFor)
 
-data Core = Core {unusedDiskCounts :: UnusedDiskCounts, board :: Board, currentPlayerColorForSearch :: Color}
+newtype Core = Core {unusedDiskCounts :: UnusedDiskCounts, board :: Board, currentPlayerColorForSearch :: Color}
 
-data StartGameState = StartGameState {color :: Color, nextMoves :: NextMoves, core :: Core}
+newtype StartGameState = StartGameState {color :: Color, nextMoves :: NextMoves, core :: Core}
 
-data MidGameState = MidGameState {priorMove :: Move, status :: MidStatus, nextMoves :: NextMoves, core :: Core}
+newtype MidGameState = MidGameState {priorMove :: Move, status :: MidStatus, nextMoves :: NextMoves, core :: Core}
 
-data EndedGameState = EndedGameState {priorMove :: Move, status :: EndStatus, core :: Core}
+newtype EndedGameState = EndedGameState {priorMove :: Move, status :: EndStatus, core :: Core}
 
 type NextMoves = List Move
 

@@ -47,4 +47,4 @@ renderUnusedDisk color =
 
 unusedDiskCounts :: State -> UnusedDiskCounts
 unusedDiskCounts state =
-    unusedDiskCounts_FromTaggedGameState $ HLPR.gameState state                
+    unusedDiskCounts_FromTaggedGameState $ HLPR.gameStateOn state                

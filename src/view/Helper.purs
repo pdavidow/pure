@@ -1,6 +1,5 @@
 module Helper
-    ( gameState
-    , gameStateOn
+    ( gameStateOn
     , isGameStarted
     , isHistoryUndoable
     , isMove_FocusedMoveSquare
@@ -9,30 +8,32 @@ module Helper
     , isSuggestedMoveSquare
     , isMove_FocusedFilledOpponentSquare
     , isOutflankSquare_FocusedFilledOpponentSquare
+    , sequenceStateOn
     )
     where
-
+ 
 import Prelude
 
 import Board (movePosition)
 import Data.List (elem)
 import Data.List.NonEmpty as NE
 import Data.Maybe (Maybe(..), isJust, maybe)
+import Debug.Trace (traceAny)
 import Display as DSP
-import GameHistory (GameHistory, undoHistoryOnce)
 import GameState (Tagged_GameState)
+import History (History, undoHistoryOnce)
+import SequenceState (SequenceState)
 import State (State)
 import StatusStartRestart (Status_StartRestart(..))
 
+gameStateOn :: State -> Tagged_GameState
+gameStateOn state = 
+    (sequenceStateOn state).game       
 
-gameState :: State -> Tagged_GameState
-gameState state = 
-    gameStateOn state.gameHistory      
 
-
-gameStateOn :: GameHistory -> Tagged_GameState
-gameStateOn x = 
-    NE.last x    
+sequenceStateOn :: State -> SequenceState
+sequenceStateOn state = 
+    NE.last state.history 
 
 
 isGameStarted :: State -> Boolean
@@ -40,7 +41,7 @@ isGameStarted state =
     state.status_StartRestart /= NotStarted
 
 
-isHistoryUndoable :: GameHistory -> Boolean
+isHistoryUndoable :: History -> Boolean
 isHistoryUndoable x =
     isJust $ undoHistoryOnce x    
 
@@ -67,7 +68,8 @@ isSuggestedMoveSquare state (DSP.Move_DisplaySquare rec) =
     maybe 
         false 
         (\ move -> move == rec.move) 
-        state.mb_SuggestedMove
+        mbSuggestedMove
+            where mbSuggestedMove = traceAny "(sequenceStateOn state).mbSuggestedMove" \_ -> (sequenceStateOn state).mbSuggestedMove   
 
 
 isMove_FocusedFilledOpponentSquare :: State -> DSP.Move_DisplaySquare -> Boolean

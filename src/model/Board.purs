@@ -52,12 +52,12 @@ import Position (Position, PositionRec, PositionRow(..), adjacentPositions, make
 import Type.Data.Boolean (kind Boolean)
 
 
-data EmptySquare = EmptySquare 
+newtype EmptySquare = EmptySquare 
     { position :: Position
     , radiatingPositionRows :: List PositionRow
     }
 
-data FilledSquare = FilledSquare 
+newtype FilledSquare = FilledSquare 
     { disk :: Disk
     , emptySquare :: EmptySquare
     }
@@ -70,7 +70,7 @@ newtype Board = Board (Array (Array Tagged_Square)) -- one-based
 
 newtype FilledRow = FilledRow (List FilledSquare)   
 
-data Move = Move 
+newtype Move = Move 
     { color :: Color
     , emptySquare :: EmptySquare
     , outflanks :: List FilledRow

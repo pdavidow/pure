@@ -13,7 +13,7 @@ module BlackWhite
 import Prelude
 import Disk (Color(..))
 
-data BlackWhite a = BlackWhite {black :: a, white :: a}
+newtype BlackWhite a = BlackWhite {black :: a, white :: a}
 
 
 derive instance eqBlackWhite :: Eq a => Eq (BlackWhite a)

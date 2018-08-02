@@ -4,22 +4,24 @@ module Settings
     , EditPlayerType(..)
     , EditPlayerTypeRec
     , EditPlayers
+    , defaultSettingsRec
+    , settingsRecOn
     , toEditPlayers
-    , toPlayers
+    , toPlayers 
     )
-    where
+    where 
 
 import Prelude
 
 import BlackWhite (BlackWhite(..), makeBlackWhite)
-import Disk (Color)
+import Disk (Color(..))
 import Player as PLYR
+import PlayerDefaults as DFLT
 import Search (SearchDepth)
-import SettingsDefaults as DFLT
 
 type SettingsRec =   
-    { selectedColor :: Color
-    , players :: EditPlayers
+    { players :: EditPlayers
+    , selectedColor :: Color
     }
 
 data EditPlayer = EditPlayer Color EditPlayerTypeRec
@@ -40,8 +42,20 @@ derive instance eqEditPlayerType :: Eq EditPlayerType
 derive instance eqEditPlayer :: Eq EditPlayer  
  
 
-defaultRec :: EditPlayerTypeRec
-defaultRec =
+defaultSettingsRec :: SettingsRec
+defaultSettingsRec =
+    settingsRecOn DFLT.defaultPlayers
+
+
+settingsRecOn :: PLYR.Players -> SettingsRec
+settingsRecOn players = 
+    { selectedColor: Black -- arbitary
+    , players: toEditPlayers players
+    }
+
+
+defaultEditPlayerTypeRec :: EditPlayerTypeRec
+defaultEditPlayerTypeRec =
     { playerType: EditPerson -- whatever
     , computer_searchDepth: DFLT.defaultComputer_searchDepth
     , computer_isRandomPick: DFLT.defaultComputer_isRandomPick                        
@@ -57,14 +71,14 @@ toEditPlayer (PLYR.Player color playerType) =
         x = 
             case playerType of 
                 PLYR.Computer rec ->
-                    defaultRec
+                    defaultEditPlayerTypeRec
                         { playerType = EditComputer
                         , computer_searchDepth = rec.searchDepth
                         , computer_isRandomPick = rec.isRandomPick
                         }  
 
                 PLYR.Person rec -> 
-                    defaultRec
+                    defaultEditPlayerTypeRec
                         { playerType = EditPerson
                         , person_searchDepth = rec.searchDepth
                         , person_isAutoSuggest = rec.isAutoSuggest

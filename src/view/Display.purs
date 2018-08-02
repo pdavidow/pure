@@ -30,7 +30,7 @@ import Data.Lazy (Lazy, defer, force)
 import Data.List (List, concatMap, elem, filter, find, nub)
 import Data.Maybe (Maybe(..), fromJust, fromMaybe)
 import Disk (Color(..), toggleColor)
-import DisplayConstants as DC
+import ClassConstants as CC
 import GameState as GS
 import Partial.Unsafe (unsafePartial)
 import Player (Player(..), PlayerType(..), Players)
@@ -39,12 +39,13 @@ import Sequencer (unsafe_CurrentPlayer, unsafe_OpponentPlayer)
 -- todo Arrays vs Lists ???
 -- todo: Use Record v1.0.0 `merge` for base filled of {color, flipCount}
 
+-- todo just use recs...?
 
 newtype Empty_NotStartedGame_DisplaySquare = Empty_NotStartedGame_DisplaySquare 
     { position :: Position
     } 
 
-data Filled_NotStartedGame_DisplaySquare = Filled_NotStartedGame_DisplaySquare 
+newtype Filled_NotStartedGame_DisplaySquare = Filled_NotStartedGame_DisplaySquare 
     { position :: Position
     , color :: Color  
     }    
@@ -54,12 +55,12 @@ newtype Empty_NonMove_DisplaySquare = EmptyNonMove_DisplaySquare
     } 
 
 --   Empty_Move_DisplaySquare (more precisely)
-data Move_DisplaySquare = Move_DisplaySquare 
+newtype Move_DisplaySquare = Move_DisplaySquare 
     { move :: B.Move
     , outflanks :: List Position
     }  
 
-data FilledSelf_DisplaySquare = FilledSelf_DisplaySquare 
+newtype FilledSelf_DisplaySquare = FilledSelf_DisplaySquare 
     { position :: Position
     , color :: Color
     , flipCount :: Int
@@ -71,7 +72,7 @@ data FilledSelf_DisplaySquare = FilledSelf_DisplaySquare
     ---------------------------------    
     }  
 
-data FilledOpponent_DisplaySquare = FilledOpponent_DisplaySquare 
+newtype FilledOpponent_DisplaySquare = FilledOpponent_DisplaySquare 
     { position :: Position
     , color :: Color
     , moves :: List Position    
@@ -89,7 +90,7 @@ newtype Empty_EndedGame_DisplaySquare = Empty_EndedGame_DisplaySquare
     { position :: Position
     } 
 
-data Filled_EndedGame_DisplaySquare = Filled_EndedGame_DisplaySquare 
+newtype Filled_EndedGame_DisplaySquare = Filled_EndedGame_DisplaySquare 
     { position :: Position
     , color :: Color
     , mbIsWinningColor :: Maybe Boolean
@@ -326,35 +327,35 @@ gameSummaryDisplay x@(GS.EndedGameState rec) =
 potentialDiskClassesForColor :: Color -> String
 potentialDiskClassesForColor color =
     case color of
-        Black -> DC.potentialDisk_Black 
-        White -> DC.potentialDisk_White
+        Black -> CC.potentialDisk_Black 
+        White -> CC.potentialDisk_White
 
 
 flipDiskClassesForColor :: Color -> String
 flipDiskClassesForColor color =
     case color of
-        Black -> DC.flipDisk_Black  
-        White -> DC.flipDisk_White
+        Black -> CC.flipDisk_Black  
+        White -> CC.flipDisk_White
 
 
 placedDiskClassesForColor :: Color -> String
 placedDiskClassesForColor color =
     case color of
-        Black -> DC.placedDisk_Black
-        White -> DC.placedDisk_White        
+        Black -> CC.placedDisk_Black
+        White -> CC.placedDisk_White        
 
 
 unusedDiskClassesForColor :: Color -> String
 unusedDiskClassesForColor color =
     case color of
-        Black -> DC.unusedDisk_Black
-        White -> DC.unusedDisk_White    
+        Black -> CC.unusedDisk_Black
+        White -> CC.unusedDisk_White    
 
 
 gameOver_Emphasis :: GS.Tagged_GameState -> String
 gameOver_Emphasis taggedGameState =       
     if GS.isEndedGameState taggedGameState then
-        DC.gameOver_Emphasis
+        CC.gameOver_Emphasis
     else
         ""
 
@@ -362,7 +363,7 @@ gameOver_Emphasis taggedGameState =
 isActiveClass_Tag :: Boolean -> String           
 isActiveClass_Tag bool = 
     if bool then
-        DC.isActive
+        CC.isActive
     else
         ""
     
@@ -370,7 +371,7 @@ isActiveClass_Tag bool =
 isInvisibleClass_Tag :: Boolean -> String           
 isInvisibleClass_Tag bool = 
     if bool then
-        DC.isInvisible 
+        CC.isInvisible 
     else
         ""
 

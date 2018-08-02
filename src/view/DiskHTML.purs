@@ -9,7 +9,7 @@ import Prelude
 import Data.Maybe (Maybe(..), fromJust, isJust)
 import Disk (toggleColor)
 import Display as DSP
-import DisplayConstants as DC
+import ClassConstants as CC
 import GameState (mbNextMoveColor_FromTaggedGameState)
 import Halogen as H
 import Halogen.HTML as HH
@@ -29,7 +29,7 @@ diskClasses state taggedDisplaySquare =
 
         DSP.Tagged_Filled_NotStartedGame_DisplaySquare (DSP.Filled_NotStartedGame_DisplaySquare rec)  -> 
             if state.isImminentGameStart then
-                DSP.placedDiskClassesForColor rec.color
+                DSP.placedDiskClassesForColor rec.color 
             else
                 ""
 
@@ -38,7 +38,7 @@ diskClasses state taggedDisplaySquare =
 
         DSP.Tagged_Move_DisplaySquare x ->   
             let
-                mbMoveColor = mbNextMoveColor_FromTaggedGameState $ HLPR.gameState state
+                mbMoveColor = mbNextMoveColor_FromTaggedGameState $ HLPR.gameStateOn state
             in   
                 if HLPR.isMove_FocusedMoveSquare state x && isJust state.mb_MouseDown_MoveSquare then
                     DSP.potentialDiskClassesForColor $ unsafePartial fromJust $ mbMoveColor
@@ -83,7 +83,7 @@ diskChildren state taggedDisplaySquare =
                 []
             Just flipCount ->
                 [ HH.div
-                    [ HP.classes [ HH.ClassName DC.flipCountText ]
+                    [ HP.classes [ HH.ClassName CC.flipCountText ]
                     ]
                     [ HH.text $ show flipCount  ]      
                 ]    

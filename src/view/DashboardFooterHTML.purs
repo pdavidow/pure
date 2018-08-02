@@ -21,4 +21,7 @@ dashboardFooter_HTML state =
     HH.div
         [ HP.classes [ HH.ClassName "mt2 f3 lh-copy b" ]
         ] 
-        [ HH.text $ status state.isImminentGameStart (HLPR.isGameStarted state) state.players $ HLPR.gameState state ]  
+        [ HH.text $ status state.isImminentGameStart (HLPR.isGameStarted state) sequenceState.players sequenceState.game ]  
+
+    where
+        sequenceState = HLPR.sequenceStateOn state 

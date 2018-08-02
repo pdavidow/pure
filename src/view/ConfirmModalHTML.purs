@@ -14,6 +14,8 @@ import Query (Query)
 
 confirmModal_HTML :: Boolean -> String -> H.Action Query -> H.Action Query -> H.ComponentHTML Query -- https://functionalprogramming.slack.com/archives/C717K38CE/p1532459248000151
 confirmModal_HTML isActive operationName okAction cancelAction =
+-- confirmModal_HTML :: Boolean -> Boolean -> String -> H.Action Query -> H.Action Query -> H.ComponentHTML Query -- https://functionalprogramming.slack.com/archives/C717K38CE/p1532459248000151
+-- confirmModal_HTML isActive isLoading operationName okAction cancelAction =
     HH.div
         [ HP.classes [ HH.ClassName $ "modal" <> (isActiveClass_Tag isActive)  ]
         ]
@@ -36,7 +38,7 @@ confirmModal_HTML isActive operationName okAction cancelAction =
                 [ HP.classes [ HH.ClassName "modal-card-foot" ]
                 ]
                 [ HH.button
-                    [ HP.classes [ HH.ClassName "button is-success" ]
+                    [ HP.classes [ HH.ClassName $ "button is-success" ] --  "<> (isLoading_Tag isLoading)"  ] todo
                     , HE.onClick (HE.input_ okAction)
                     ]
                     [ HH.text "Ok" ]                        

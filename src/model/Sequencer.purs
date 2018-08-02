@@ -1,7 +1,6 @@
 module Sequencer
     ( moveSequence
     , advanceHistory
-    , mbSuggestedMove
     , mbCurrentPlayer
     , unsafe_CurrentPlayer
     , mbOpponentPlayer
@@ -19,14 +18,16 @@ import Control.Monad.Eff.Random (randomInt, RANDOM)
 import Data.Either (isRight, fromLeft, fromRight)
 import Data.List (index, length)
 import Data.List.NonEmpty as NE
-import Data.Maybe (Maybe(..), fromJust, maybe)
-import GameHistory (GameHistory, applyMoveOnHistory)
-import GameState (Tagged_GameState(..), mbNextMoveColor_FromTaggedGameState, nextMoves_FromTaggedGameState)
-import Partial.Unsafe (unsafePartial)
-import Player (Player(..), PlayerType(..), Players, playerColored, setCurrentPlayerColorForSearch, isComputerVsComputer) 
-import Search (mbBestNextMove)
-import Logger (logMoveErrors)  
+import Data.Maybe (Maybe, fromJust, maybe)
+import Debug.Trace (trace, traceAny)
 import Disk (toggleColor)
+import GameState (Tagged_GameState(..), mbNextMoveColor_FromTaggedGameState, nextMoves_FromTaggedGameState)
+import History (History, applyMoveOnHistory, swapLast)
+import Logger (logMoveErrors)
+import Partial.Unsafe (unsafePartial)
+import Player (Player(..), PlayerType(..), Players, playerColored, setCurrentPlayerColorForSearch, isComputerVsComputer, isPersonVsPerson)
+import Search (mbBestNextMove)
+import Data.Tuple (Tuple(..))
 
 
 mbCurrentPlayer :: Players -> Tagged_GameState -> Maybe Player
@@ -53,81 +54,85 @@ unsafe_OpponentPlayer players t =
     unsafePartial fromJust $ mbOpponentPlayer players t
 
 
-moveSequence :: forall eff. Players -> GameHistory -> Eff (console :: CONSOLE, random :: RANDOM | eff) GameHistory
-moveSequence players history =
-    moveSequence' count players history 
-        where count = if (isComputerVsComputer players) then 1 else 0       
+moveSequence :: forall eff. History -> Eff (console :: CONSOLE, random :: RANDOM | eff) History
+moveSequence history =
+    moveSequence' count history 
+        where 
+            players = (NE.last history).players
+
+            count = 
+                if (isComputerVsComputer players) then 
+                    1 
+                else 
+                    0    
 
 
-moveSequence' :: forall eff. Int -> Players -> GameHistory -> Eff (console :: CONSOLE, random :: RANDOM | eff) GameHistory
-moveSequence' count players history = do
-    if count > 1 -- only done for the sake of ComputerVsComputer to break out after each move
+moveSequence' :: forall eff. Int -> History -> Eff (console :: CONSOLE, random :: RANDOM | eff) History
+moveSequence' count history = do
+    if (traceAny (Tuple "count: " count) \_-> count) > 1 -- only done for the sake of ComputerVsComputer to user-step each move
         then do
             pure history 
 
         else do
-            let taggedGameState = NE.last history
-            let (Player color playerType) = unsafe_CurrentPlayer players taggedGameState 
+            let state = NE.last history
+            let (Player color playerType) = unsafe_CurrentPlayer state.players state.game
 
-            mbMove <- case playerType of
-                Person _ -> do
-                    pure Nothing
-
+            case traceAny (Tuple "playerType: " playerType) \_-> playerType of
                 Computer rec -> do
-                    case rec.isRandomPick of    
-                        true -> do 
-                            let moves = nextMoves_FromTaggedGameState taggedGameState
-                            randN <- liftEff $ randomInt 0 $ length moves - 1 -- https://purescript-users.ml/t/problem-with-using-rand-in-a-let/292/2
-                            pure $ index moves randN 
+                    mbMove <-
+                         if traceAny "rec.isRandomPick" \_-> rec.isRandomPick
+                            then do 
+                                let moves = nextMoves_FromTaggedGameState state.game
+                                randN <- liftEff $ randomInt 0 $ length moves - 1
+                                pure $ index moves randN 
 
-                        false -> do
-                            let taggedGameState' = setCurrentPlayerColorForSearch taggedGameState color
-                            pure $ mbBestNextMove rec.searchDepth taggedGameState' 
+                            else do
+                                pure $ mbBestNextMove rec.searchDepth $ setCurrentPlayerColorForSearch state.game color 
+                    
+                    maybe 
+                        (pure history) 
+                        (\ move -> advanceHistory' count history move) 
+                        mbMove
 
-            maybe (pure history) (\ move -> advanceHistory' count players history move) mbMove
+                Person rec -> do
+                    if traceAny (Tuple "rec.isAutoSuggest: " rec.isAutoSuggest) \_-> rec.isAutoSuggest 
+                        then do
+                            let x = mbBestNextMove rec.searchDepth $ setCurrentPlayerColorForSearch state.game color
+                            let state' = state {mbSuggestedMove = trace "x" \_-> x}
+                            let history' = traceAny (Tuple "swapLast history state': " $ swapLast history state') \_-> swapLast history state'
+                            pure history'
+                            
+                        else do
+                            pure history
 
 
-advanceHistory :: forall eff. Players -> GameHistory -> Move -> Eff (console :: CONSOLE, random :: RANDOM | eff) GameHistory
-advanceHistory players history move =
-    advanceHistory' 0 players history move
+advanceHistory :: forall eff. History -> Move -> Eff (console :: CONSOLE, random :: RANDOM | eff) History
+advanceHistory history move =
+    -- only called for person move
+    advanceHistory' count history move
+        where 
+            players = (NE.last history).players
+            count = 
+                if (isPersonVsPerson players) then 
+                    traceAny "isPersonVsPerson players 0" \_-> 0
+                else -- must be isPersonVsComputer
+                    traceAny "isPersonVsComputer players -1" \_-> -1
 
 
-advanceHistory' :: forall eff. Int -> Players -> GameHistory -> Move -> Eff (console :: CONSOLE, random :: RANDOM | eff) GameHistory
-advanceHistory' count players history move = do
-    let eiHistory = applyMoveOnHistory move history
+advanceHistory' :: forall eff. Int -> History -> Move -> Eff (console :: CONSOLE, random :: RANDOM | eff) History
+advanceHistory' count history move = do
+    let eiHistory = traceAny "applyMoveOnHistory move history" \_-> applyMoveOnHistory move history
     let count' = count + 1
 
     if isRight eiHistory
         then do 
             let history' = unsafePartial fromRight eiHistory
-            let taggedState = NE.last history'
+            let taggedState = traceAny "(NE.last history').game" \_-> (NE.last history').game
 
             case taggedState of 
-                Tagged_StartGameState _ -> moveSequence' count' players history' -- should never get here
-                Tagged_MidGameState   _ -> moveSequence' count' players history'
+                Tagged_StartGameState _ -> moveSequence' count' history' -- should never get here
+                Tagged_MidGameState   _ -> moveSequence' count' history'
                 Tagged_EndedGameState _ -> pure history'
         else do -- should never get here (if coming from UI or gameTree-search)
             logMoveErrors move $ unsafePartial fromLeft eiHistory
             pure history
-     
-
-mbSuggestedMove :: Players -> GameHistory -> Maybe Move
-mbSuggestedMove players history =
-    let
-        taggedGameState = NE.last history
-        mbPlayer = mbCurrentPlayer players taggedGameState
-    in
-        case mbPlayer of
-            Just (Player color playerType) ->
-                case playerType of
-                    Person rec ->
-                        if rec.isAutoSuggest then
-                            mbBestNextMove rec.searchDepth $ setCurrentPlayerColorForSearch taggedGameState color
-                        else
-                            Nothing
-
-                    Computer _ -> 
-                        Nothing    
-
-            Nothing -> 
-                Nothing

@@ -1,4 +1,4 @@
-module DisplayConstants
+module ClassConstants
     where
       
 import Prelude
