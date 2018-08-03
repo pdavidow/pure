@@ -196,7 +196,7 @@ boardArrayAt array2D ({x: i, y: j}) =
 
 boardElems :: Board -> Array Tagged_Square
 boardElems (Board array2D) =
-    Array.concat array2D -- todo return List instead ?     
+    Array.concat array2D  
 
 
 outflankPositions :: Move -> List Position  

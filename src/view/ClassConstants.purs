@@ -166,13 +166,7 @@ flipCountText =
 
 gameOver_Emphasis ::  String
 gameOver_Emphasis =       
-    " b "
-      
-
--- todo unused
-modalSettingsId :: String
-modalSettingsId =
-    " modal-ter "      
+    " b "    
 
 
 isActive :: String

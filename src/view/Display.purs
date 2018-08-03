@@ -36,10 +36,9 @@ import Partial.Unsafe (unsafePartial)
 import Player (Player(..), PlayerType(..), Players)
 import Position (Position)
 import Sequencer (unsafe_CurrentPlayer, unsafe_OpponentPlayer)
--- todo Arrays vs Lists ???
+
 -- todo: Use Record v1.0.0 `merge` for base filled of {color, flipCount}
 
--- todo just use recs...?
 
 newtype Empty_NotStartedGame_DisplaySquare = Empty_NotStartedGame_DisplaySquare 
     { position :: Position

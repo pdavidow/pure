@@ -1,7 +1,7 @@
 module BlackWhite
     ( BlackWhite(..)
     , makeBlackWhite
-    , getItemColored -- todo use more
+    , getItemColored
     , getItemBlack 
     , getItemWhite 
     , setItemColored 

@@ -21,7 +21,7 @@ import Type.Data.Boolean (kind Boolean)
 
 navbar_HTML :: State -> H.ComponentHTML Query 
 navbar_HTML state =
-    HH.span -- todo break out into Navbar_HTML module
+    HH.span 
         [ HP.classes [ HH.ClassName "ml3 roboto" ]
         ]  
         [ HH.span
@@ -38,7 +38,6 @@ navbar_HTML state =
             [ HH.text $ nameForStartRestartButton (HLPR.isGameStarted state) srec.players]
         , HH.a
             [ HP.classes [ HH.ClassName "ml3" ] -- button modal-button
-            --, HP.prop (HH.PropName "data-target") CC.modalSettingsId 
             , HPA.hasPopup "true"
             , HE.onClick $ HE.input_ Click_Settings_Open
             ]
