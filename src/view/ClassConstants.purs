@@ -177,3 +177,8 @@ isActive =
 isInvisible :: String
 isInvisible =
     " is-invisible "  -- https://bulma.io/documentation/modifiers/helpers/          
+
+
+treeSearchStatus :: String
+treeSearchStatus =
+    " i bg-washed-yellow "

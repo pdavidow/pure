@@ -12,6 +12,7 @@ import Data.Maybe (Maybe(..))
 import Data.Monoid (guard)
 import DiskHTML (diskClasses, diskChildren)
 import Display as DSP
+import DisplaySquare as DSQ
 import ClassConstants as CC
 import GameState (board_FromTaggedGameState)
 import Halogen as H
@@ -30,20 +31,20 @@ import ViewLib (setCssProp)
 board_HTML :: State -> H.ComponentHTML Query 
 board_HTML state =
     HH.div
-        [ HP.classes [ HH.ClassName "mt2 board-grid" ]
+        [ HP.classes [ HH.ClassName "mt2 board-grid" ] 
         , setCssProp "--boardSize" $ show boardSize
         ] 
         ( map (renderSquare state) $ squares state )               
 
 
-squares :: State -> Array DSP.Tagged_DisplaySquare
+squares :: State -> Array DSQ.Tagged_DisplaySquare
 squares state =
     (boardElems $ board_FromTaggedGameState gameState)
-        # map (DSP.toDisplaySquare gameState $ HLPR.isGameStarted state)   
+        # map (DSQ.toDisplaySquare gameState $ HLPR.isGameStarted state)   
         where
             gameState = HLPR.gameStateOn state
 
-renderSquare :: State -> DSP.Tagged_DisplaySquare -> H.ComponentHTML Query
+renderSquare :: State -> DSQ.Tagged_DisplaySquare -> H.ComponentHTML Query
 renderSquare state taggedDisplaySquare =
     HH.figure
         ( squareProps state taggedDisplaySquare )
@@ -56,7 +57,7 @@ renderSquare state taggedDisplaySquare =
 squareProps :: _ -- todo
 squareProps state taggedDisplaySquare =
     case taggedDisplaySquare of
-        DSP.Tagged_Empty_NotStartedGame_DisplaySquare _ -> 
+        DSQ.Tagged_Empty_NotStartedGame_DisplaySquare _ -> 
             [ HP.classes 
                 [ HH.ClassName $ CC.basicGridItem <> 
                     CC.defaultSquareColor <> 
@@ -65,7 +66,7 @@ squareProps state taggedDisplaySquare =
             , HE.onDragStart $ HE.input $ PreventDefault <<< toEvent 
             ]                    
 
-        DSP.Tagged_Filled_NotStartedGame_DisplaySquare _ -> 
+        DSQ.Tagged_Filled_NotStartedGame_DisplaySquare _ -> 
             [ HP.classes 
                 [ HH.ClassName $ CC.fillableGridItem <> 
                     CC.defaultSquareColor <> 
@@ -74,7 +75,7 @@ squareProps state taggedDisplaySquare =
             , HE.onDragStart $ HE.input $ PreventDefault <<< toEvent
             ]                     
 
-        DSP.Tagged_Empty_NonMove_DisplaySquare _ ->
+        DSQ.Tagged_Empty_NonMove_DisplaySquare _ ->
             [ HP.classes 
                 [ HH.ClassName $ CC.basicGridItem <> 
                     CC.defaultSquareColor <> 
@@ -83,7 +84,7 @@ squareProps state taggedDisplaySquare =
             , HE.onDragStart $ HE.input $ PreventDefault <<< toEvent
             ]
 
-        DSP.Tagged_Move_DisplaySquare x ->
+        DSQ.Tagged_Move_DisplaySquare x ->
             [ HP.classes 
                 [ HH.ClassName $ CC.fillableGridItem <> squareProps__Move_DisplaySquare state x ]                       
             , HE.onMouseEnter $ HE.input_ $ MouseEnter_MoveSquare x
@@ -95,7 +96,7 @@ squareProps state taggedDisplaySquare =
             , HE.onMouseUp $ HE.input_ $ MouseUp_MoveSquare x                                
             ] 
 
-        DSP.Tagged_FilledSelf_DisplaySquare (DSP.FilledSelf_DisplaySquare rec) ->
+        DSQ.Tagged_FilledSelf_DisplaySquare (DSQ.FilledSelf_DisplaySquare rec) ->
             [ HP.classes 
                 [ HH.ClassName $ CC.fillableGridItem <> 
                     CC.defaultSquareColor <> 
@@ -104,12 +105,12 @@ squareProps state taggedDisplaySquare =
             , HE.onDragStart $ HE.input $ PreventDefault <<< toEvent
             ]                    
 
-        DSP.Tagged_FilledOpponent_DisplaySquare x@(DSP.FilledOpponent_DisplaySquare rec) ->
+        DSQ.Tagged_FilledOpponent_DisplaySquare x@(DSQ.FilledOpponent_DisplaySquare rec) ->
             [ HP.classes 
                 [ HH.ClassName $ CC.fillableGridItem <> 
-                    (   if HLPR.isOutflankSquare_FocusedMoveSquare state taggedDisplaySquare then 
+                    (   if DSP.isOutflankSquare_FocusedMoveSquare state taggedDisplaySquare then 
                             CC.outflankSquareColor_FocusedMoveSquare 
-                        else if HLPR.isOutflankSquare_FocusedFilledOpponentSquare state taggedDisplaySquare then 
+                        else if DSP.isOutflankSquare_FocusedFilledOpponentSquare state taggedDisplaySquare then 
                             CC.outflankSquareColor_FocusedFilledOpponentSquare                                  
                         else 
                             CC.defaultSquareColor                             
@@ -121,7 +122,7 @@ squareProps state taggedDisplaySquare =
             , HE.onDragStart $ HE.input $ PreventDefault <<< toEvent
             ] 
 
-        DSP.Tagged_Empty_EndedGame_DisplaySquare _ ->
+        DSQ.Tagged_Empty_EndedGame_DisplaySquare _ ->
             [ HP.classes 
                 [ HH.ClassName $ CC.basicGridItem <> 
                     CC.defaultSquareColor <> 
@@ -130,7 +131,7 @@ squareProps state taggedDisplaySquare =
             , HE.onDragStart $ HE.input $ PreventDefault <<< toEvent
             ]
 
-        DSP.Tagged_Filled_EndedGame_DisplaySquare (DSP.Filled_EndedGame_DisplaySquare rec) ->
+        DSQ.Tagged_Filled_EndedGame_DisplaySquare (DSQ.Filled_EndedGame_DisplaySquare rec) ->
             let
                 squareColor = 
                     case rec.mbIsWinningColor of
@@ -150,20 +151,20 @@ squareProps state taggedDisplaySquare =
                 ] 
 
 
-squareProps__Move_DisplaySquare :: State -> DSP.Move_DisplaySquare -> String
+squareProps__Move_DisplaySquare :: State -> DSQ.Move_DisplaySquare -> String
 squareProps__Move_DisplaySquare state moveSquare =
     backgroundColorProps <> borderProps
     where
         backgroundColorProps =
-            if HLPR.isMove_FocusedMoveSquare state moveSquare then  
+            if DSP.isMove_FocusedMoveSquare state moveSquare then  
                 CC.moveSquareColor_FocusedMoveSquare 
-            else if HLPR.isMove_FocusedFilledOpponentSquare state moveSquare then  
+            else if DSP.isMove_FocusedFilledOpponentSquare state moveSquare then  
                 CC.moveSquareColor_FocusedFilledOpponentSquare
             else
                 CC.moveSquareColor                     
 
         borderProps = 
-            if HLPR.isSuggestedMoveSquare state moveSquare then
+            if DSP.isSuggestedMoveSquare state moveSquare then
                 CC.moveSquareBorder_Suggested
             else 
                 CC.moveSquareBorder_NonSuggested

@@ -49,4 +49,4 @@ defaultPerson_searchDepth =
 
 defaultPerson_isAutoSuggest :: Boolean
 defaultPerson_isAutoSuggest =
-    true        
+    false        

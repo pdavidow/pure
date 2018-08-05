@@ -7,7 +7,7 @@ module State
 
 import Data.List (List(Nil))
 import Data.Maybe (Maybe(..))
-import Display (Move_DisplaySquare)
+import DisplaySquare (Move_DisplaySquare)
 import History (History, makeHistory)
 import Position (Position)
 import Settings (SettingsRec, defaultSettingsRec) 
@@ -22,8 +22,9 @@ type State =
     , moves_FocusedFilledOpponentSquare :: List Position   
     , outflanks_FocusedMoveSquare :: List Position 
     , outflanks_FocusedFilledOpponentSquare :: List Position
-    , isShow_FlipCounts :: Boolean
     , settings :: SettingsRec
+    , isShow_FlipCounts :: Boolean
+    , isBlockingOnSearch :: Boolean
 
     , isShowModal_Settings :: Boolean    
     , isShowModal_Confirm_Settings_Save :: Boolean
@@ -45,8 +46,9 @@ initialState =
     , outflanks_FocusedMoveSquare: Nil
     , moves_FocusedFilledOpponentSquare: Nil        
     , outflanks_FocusedFilledOpponentSquare: Nil
+    , settings: defaultSettingsRec -- whatever    
     , isShow_FlipCounts: false
-    , settings: defaultSettingsRec -- whatever
+    , isBlockingOnSearch: false
 
     , isShowModal_Settings: false   
     , isShowModal_Confirm_Settings_Save: false

@@ -5,7 +5,7 @@ module Query
 
 import DOM.Event.Event (Event)
 import Disk (Color)
-import Display as DISP
+import DisplaySquare (FilledOpponent_DisplaySquare, Move_DisplaySquare)
 import Settings (EditPlayerTypeRec)   
 
 
@@ -13,12 +13,12 @@ data Query a
     = MouseEnter_StartStopButton a
     | MouseLeave_StartStopButton a
 
-    | MouseEnter_MoveSquare DISP.Move_DisplaySquare a
+    | MouseEnter_MoveSquare Move_DisplaySquare a
     | MouseLeave_MoveSquare a
-    | MouseDown_MoveSquare DISP.Move_DisplaySquare a
-    | MouseUp_MoveSquare DISP.Move_DisplaySquare a  
+    | MouseDown_MoveSquare Move_DisplaySquare a
+    | MouseUp_MoveSquare Move_DisplaySquare a  
 
-    | MouseEnter_FilledOpponentSquare DISP.FilledOpponent_DisplaySquare a
+    | MouseEnter_FilledOpponentSquare FilledOpponent_DisplaySquare a
     | MouseLeave_FilledOpponentSquare a  
     
     | MouseUp_Anywhere a

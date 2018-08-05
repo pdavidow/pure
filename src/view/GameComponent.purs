@@ -9,7 +9,7 @@ import Prelude
 import BlackWhite (getItemColored, setItemColored)
 import BoardHTML (board_HTML)
 import ConfirmModalHTML (confirmModal_HTML)
-import Control.Monad.Aff (Aff)
+import Control.Monad.Aff (Aff, delay)
 import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Console (CONSOLE)
 import Control.Monad.Eff.Random (RANDOM)
@@ -17,11 +17,12 @@ import DOM (DOM)
 import DOM.Classy.Event (preventDefault)
 import DashboardFooterHTML (dashboardFooter_HTML)
 import DashboardHTML (dashboard_HTML)
+import Data.Time.Duration (Milliseconds(..))
 import Data.List (List(Nil))
 import Data.List.NonEmpty as NE
 import Data.Maybe (Maybe(..), maybe)
 import Data.Monoid (guard)
-import Display (Move_DisplaySquare(..), FilledOpponent_DisplaySquare(..))
+import DisplaySquare (Move_DisplaySquare(..), FilledOpponent_DisplaySquare(..))
 import GameState (Tagged_GameState)
 import Halogen as H
 import Halogen.HTML as HH
@@ -32,15 +33,15 @@ import History (swapLast, undoHistoryOnce)
 import NavbarHTML (navbar_HTML)
 import Player (isPlayer_Person)
 import Query (Query(..))
-import SequenceState (SequenceStateRec, SequenceState(..), seqRec) 
+import SequenceState (SequenceStateRec, SequenceState(..), seqRec)
 import Sequencer (moveSequence, advanceHistoryFromPersonMove, mbCurrentPlayer)
-import Settings (EditPlayer(..), defaultSettingsRec, settingsRecOn, toPlayers) 
+import Settings (EditPlayer(..), defaultSettingsRec, settingsRecOn, toPlayers)
 import SettingsModalHTML (settingsModal_HTML)
 import State (State, initialState)
 import StatusStartRestart (Status_StartRestart(..))
 import Type.Data.Boolean (kind Boolean)
 import UnusedDiskHTML (unusedDisk_HTML)
-
+import ViewLib (setCssProp)
 
 type Effects eff = ( dom :: DOM, console :: CONSOLE, random :: RANDOM | eff )   
 
@@ -58,9 +59,13 @@ component =
     render :: State -> H.ComponentHTML Query
     render state =
         HH.div 
-            ( guard isEvent_MouseUp_Anywhere
-                [ HE.onMouseUp $ HE.input_ $ MouseUp_Anywhere ]           
-            ) $   
+            (
+                []
+                <> guard isEvent_MouseUp_Anywhere  
+                    [ HE.onMouseUp $ HE.input_ $ MouseUp_Anywhere ]    
+                <> guard state.isBlockingOnSearch
+                    [ setCssProp "cursor" "wait" ]                       
+            ) $  
             [ navbar_HTML state
             , HH.div
                 [ HP.classes [ HH.ClassName "ml3" ]  
@@ -148,8 +153,22 @@ component =
 
                 when (mouseDown_MoveSquare == Just x) do    
                     history <- H.gets _.history   
+
+                    H.modify (_ 
+                        { isBlockingOnSearch = true
+                        }
+                    ) 
+                    _ <- H.liftAff $ delay (Milliseconds 100.0) 
                     history' <- liftEff $ advanceHistoryFromPersonMove history rec.move    
-                    H.modify (_  { history = history' } )
+                    H.modify (_ 
+                        { isBlockingOnSearch = false
+                        }
+                    )                    
+                    H.modify (_ 
+                        { --isBlockingOnSearch = false
+                          history = history'
+                        }
+                    )                                   
 
                 pure next       
 
@@ -258,11 +277,21 @@ component =
                     , isShowModal_Settings = false
                     }
                 )    
+                _ <- H.liftAff $ delay (Milliseconds 100.0) -- give modals a chance to close
 
                 sqState'' <- H.get 
                 when (HLPR.isGameStarted sqState'') do    
-                    history' <- H.gets _.history  -- retreive to play it safe         
+                    history' <- H.gets _.history  -- retreive to play it safe      
+                    H.modify (_ 
+                        { isBlockingOnSearch = true
+                        }
+                    )    
+                    _ <- H.liftAff $ delay (Milliseconds 100.0)                     
                     history'' <- liftEff $ moveSequence history'
+                    H.modify (_ 
+                        { isBlockingOnSearch = false
+                        }
+                    ) 
 
                     H.modify (_ 
                         { history = history''
@@ -367,6 +396,16 @@ component =
                         pure next    
 
             Click_FlipCounts next -> do
+                H.modify (_ 
+                    { isBlockingOnSearch = true
+                    }
+                ) 
+                _ <- H.liftAff $ delay (Milliseconds 1000.0) 
+                H.modify (_ 
+                    { isBlockingOnSearch = false
+                    }
+                ) 
+        
                 isShow_FlipCounts <- H.gets _.isShow_FlipCounts  
                 H.modify (_ 
                     { isShow_FlipCounts = not isShow_FlipCounts
@@ -375,8 +414,17 @@ component =
                 pure next
 
             Click_ComputerStep next -> do
-                history <- H.gets _.history              
+                history <- H.gets _.history   
+                H.modify (_ 
+                    { isBlockingOnSearch = true
+                    }
+                ) 
+                _ <- H.liftAff $ delay (Milliseconds 100.0)                            
                 history' <- liftEff $ moveSequence history
+                H.modify (_ 
+                    { isBlockingOnSearch = false
+                    }
+                )   
 
                 H.modify (_ 
                     { history = history'

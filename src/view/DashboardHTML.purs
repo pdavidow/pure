@@ -7,7 +7,7 @@ module DashboardHTML
 import Prelude 
 
 import Data.Monoid (guard)
-import Display (gameOver_Emphasis, placedDisksStatus)
+import Display (gameOver_Emphasis)
 import GameState (isEndedGameState)
 import Halogen as H
 import Halogen.HTML as HH
@@ -16,12 +16,12 @@ import Halogen.HTML.Properties as HP
 import Helper as HLPR
 import Player (isComputerVsComputer)
 import Query (Query(..))
-import SequenceState (seqRec)
 import State (State)
+import Status (placedDisksStatus)
 import Type.Data.Boolean (kind Boolean)
 
 
-dashboard_HTML :: State -> H.ComponentHTML Query 
+dashboard_HTML :: State -> H.ComponentHTML Query  
 dashboard_HTML state =
     HH.span 
         [ HP.classes [ HH.ClassName "mt2" ] -- todo unused controls-grid"

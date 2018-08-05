@@ -55,7 +55,7 @@ unsafe_OpponentPlayer players t =
 
 moveSequence :: forall eff. History -> Eff (console :: CONSOLE, random :: RANDOM | eff) History
 moveSequence history =
-    moveSequence' count history 
+    moveSequenceSeveral count history 
         where 
             players = (seqRec (NE.last history)).players
 
@@ -66,8 +66,8 @@ moveSequence history =
                     1    
 
 
-moveSequence' :: forall eff. Int -> History -> Eff (console :: CONSOLE, random :: RANDOM | eff) History
-moveSequence' count history = do
+moveSequenceSeveral :: forall eff. Int -> History -> Eff (console :: CONSOLE, random :: RANDOM | eff) History
+moveSequenceSeveral count history = do
     if count > 2
         then do
             pure history 
@@ -91,7 +91,7 @@ moveSequence' count history = do
                     
                     maybe 
                         (pure history) 
-                        (\ move -> advanceHistory' count history move) 
+                        (\ move -> advanceHistory count history move) 
                         mbMove
 
                 Person rec -> do
@@ -109,7 +109,7 @@ moveSequence' count history = do
 advanceHistoryFromPersonMove :: forall eff. History -> Move -> Eff (console :: CONSOLE, random :: RANDOM | eff) History
 advanceHistoryFromPersonMove history move =
 
-    advanceHistory' count history move
+    advanceHistory count history move
         where 
             players = (seqRec (NE.last history)).players
             count = 
@@ -119,8 +119,8 @@ advanceHistoryFromPersonMove history move =
                     0
 
 
-advanceHistory' :: forall eff. Int -> History -> Move -> Eff (console :: CONSOLE, random :: RANDOM | eff) History
-advanceHistory' count history move = do
+advanceHistory :: forall eff. Int -> History -> Move -> Eff (console :: CONSOLE, random :: RANDOM | eff) History
+advanceHistory count history move = do
     let eiHistory = applyMoveOnHistory move history
     let count' = count + 1
 
@@ -130,8 +130,8 @@ advanceHistory' count history move = do
             let taggedState = (seqRec (NE.last history')).game
 
             case taggedState of 
-                Tagged_StartGameState _ -> moveSequence' count' history' -- should never get here
-                Tagged_MidGameState   _ -> moveSequence' count' history'
+                Tagged_StartGameState _ -> moveSequenceSeveral count' history' -- should never get here
+                Tagged_MidGameState   _ -> moveSequenceSeveral count' history'
                 Tagged_EndedGameState _ -> pure history'
         else do -- should never get here (if coming from UI or gameTree-search)
             logMoveErrors move $ unsafePartial fromLeft eiHistory
