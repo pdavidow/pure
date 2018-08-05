@@ -30,7 +30,7 @@ dashboardFooter_HTML state =
                 [ HH.label
                     [ HP.classes [ HH.ClassName CC.treeSearchStatus ] 
                     ]
-                    [ HH.text treeSearchStatus ]  
+                    [ HH.text $ treeSearchStatus srec.players srec.game ]  
                 ]
             ]             
 

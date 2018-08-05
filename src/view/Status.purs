@@ -8,18 +8,30 @@ module Status
 import Prelude
 
 import Board as B
-import ClassConstants as CC
-import Data.Lazy (Lazy, defer, force)
-import Data.List (List, concatMap, elem, filter, find, nub)
-import Data.Maybe (Maybe(..), fromJust, fromMaybe)
-import Disk (Color(..), toggleColor)
 import GameState as GS
-import Partial.Unsafe (unsafePartial)
-import Player (Player(..), PlayerType(..), Players)
-import Position (Position)
-import SequenceState (SequenceStateRec)
-import Sequencer (unsafe_CurrentPlayer, unsafe_OpponentPlayer)
-import State (State)
+import Player (Player(..), PlayerType(..), Players, searchDepth)
+import Search (depthLevel)
+import Sequencer (unsafe_CurrentPlayer, unsafe_OpponentPlayer) 
+
+
+currentPlayer :: Players -> GS.Tagged_GameState -> Player
+currentPlayer players taggedGameState = 
+    unsafe_CurrentPlayer players taggedGameState 
+
+
+opponentPlayer :: Players -> GS.Tagged_GameState -> Player
+opponentPlayer players taggedGameState = 
+    unsafe_OpponentPlayer players taggedGameState  
+
+
+playerStatus :: Player -> String
+playerStatus (Player color playerType) = 
+    let
+        suffix = show color
+    in
+        case playerType of
+            Person   _ -> "Person " <> suffix
+            Computer _ -> "Computer " <> suffix     
 
 
 status :: Boolean -> Boolean -> Players -> GS.Tagged_GameState -> String
@@ -36,42 +48,24 @@ status isImminentGameStart isGameStarted players taggedGameState =
 
 
         midGameStatus_ForfeitTurn :: Player -> Player -> String
-        midGameStatus_ForfeitTurn currentPlayer opponentPlayer =
-            midGameStatus currentPlayer <> 
-                " (" <> playerStatus opponentPlayer <> " forfeits turn)"
+        midGameStatus_ForfeitTurn current opponent =
+            midGameStatus current <> 
+                " (" <> playerStatus opponent <> " forfeits turn)"
 
 
         midGameStatus_TransferDisk :: Player -> String
         midGameStatus_TransferDisk player =
-            "TRANSFER UNUSED-DISK, " <> midGameStatus player
-
-
-        playerStatus :: Player -> String
-        playerStatus (Player color playerType) = 
-            let
-                suffix = show color
-            in
-                case playerType of
-                    Person   _ -> "Person " <> suffix
-                    Computer _ -> "Computer " <> suffix 
-
-
-        lzCurrentPlayer :: Lazy Player
-        lzCurrentPlayer = defer $ \_ -> unsafe_CurrentPlayer players taggedGameState 
-
-
-        lzOpponentPlayer :: Lazy Player
-        lzOpponentPlayer = defer $ \_ -> unsafe_OpponentPlayer players taggedGameState                                                        
+            "TRANSFER UNUSED-DISK, " <> midGameStatus player                                                     
     in
         if isImminentGameStart || isGameStarted then
             case taggedGameState of
-                GS.Tagged_StartGameState _ -> startGameStatus $ force lzCurrentPlayer
+                GS.Tagged_StartGameState _ -> startGameStatus $ currentPlayer players taggedGameState
 
                 GS.Tagged_MidGameState (GS.MidGameState rec) ->
                     case rec.status of
-                        GS.Normal -> midGameStatus $ force lzCurrentPlayer                      
-                        GS.ForfeitTurn_Rule2 ->  midGameStatus_ForfeitTurn (force lzCurrentPlayer) (force lzOpponentPlayer)   
-                        GS.TransferDisk_Rule9 -> midGameStatus_TransferDisk $ force lzCurrentPlayer
+                        GS.Normal -> midGameStatus $ currentPlayer players taggedGameState                      
+                        GS.ForfeitTurn_Rule2 ->  midGameStatus_ForfeitTurn (currentPlayer players taggedGameState) (opponentPlayer players taggedGameState)   
+                        GS.TransferDisk_Rule9 -> midGameStatus_TransferDisk $ currentPlayer players taggedGameState
 
                 GS.Tagged_EndedGameState x -> gameSummaryDisplay x
         else
@@ -107,7 +101,12 @@ placedDiskCountsStatus taggedGameState =
         # show      
 
 
-treeSearchStatus :: String
-treeSearchStatus =
-    "Searching game-tree..."
-          
+treeSearchStatus :: Players -> GS.Tagged_GameState -> String
+treeSearchStatus players taggedGameState =
+    let
+        player = opponentPlayer players taggedGameState
+        n = depthLevel $ searchDepth player
+        what = if n == 1 then " level " else " levels " 
+    in
+        "Searching game-tree (" <> show n <> what <> "deep, for " <> playerStatus player <> ")..."
+           

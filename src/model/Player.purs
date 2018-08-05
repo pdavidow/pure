@@ -11,6 +11,7 @@ module Player
     , isPersonVsComputer
     , blackPlayer
     , whitePlayer
+    , searchDepth
     )
     where
  
@@ -96,3 +97,10 @@ isPlayer_Computer (Player _ playerType) =
     case playerType of
         Person   _ -> false
         Computer _ -> true
+
+
+searchDepth :: Player -> SearchDepth        
+searchDepth (Player _ playerType) =
+    case playerType of
+        Person   rec -> rec.searchDepth
+        Computer rec -> rec.searchDepth

@@ -2,6 +2,7 @@ module Search
     ( SearchDepth(..)
     , mbBestNextMove
     , searchDepths
+    , depthLevel
     )
     where
       
@@ -31,6 +32,7 @@ searchDepths =
     , SearchDepth_4
     , SearchDepth_5
     ]
+
 
 depthLevel :: SearchDepth -> Int
 depthLevel searchDepth =
