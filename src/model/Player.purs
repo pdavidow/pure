@@ -74,7 +74,6 @@ isPersonVsComputer players =
     ( (isPlayer_Computer $ blackPlayer players) && (isPlayer_Person $ whitePlayer players) )
 
 
--- todo use State monad for search...?
 setCurrentPlayerColorForSearch :: Tagged_GameState -> Color -> Tagged_GameState
 setCurrentPlayerColorForSearch taggedGameState color = 
     let

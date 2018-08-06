@@ -1,5 +1,6 @@
 module Sequencer
-    ( moveSequence
+    ( SequenceEffects
+    , moveSequence
     , advanceHistoryFromPersonMove
     , mbCurrentPlayer
     , unsafe_CurrentPlayer
@@ -29,6 +30,9 @@ import Search (mbBestNextMove)
 import SequenceState (SequenceState(..), seqRec)
 
 
+type SequenceEffects eff = ( console :: CONSOLE, random :: RANDOM | eff )  
+
+
 mbCurrentPlayer :: Players -> Tagged_GameState -> Maybe Player
 mbCurrentPlayer players t =
     playerColored players 
@@ -53,7 +57,7 @@ unsafe_OpponentPlayer players t =
     unsafePartial fromJust $ mbOpponentPlayer players t
 
 
-moveSequence :: forall eff. History -> Eff (console :: CONSOLE, random :: RANDOM | eff) History
+moveSequence :: forall eff. History -> Eff (SequenceEffects eff) History
 moveSequence history =
     moveSequenceSeveral count history 
         where 
@@ -66,7 +70,7 @@ moveSequence history =
                     1    
 
 
-moveSequenceSeveral :: forall eff. Int -> History -> Eff (console :: CONSOLE, random :: RANDOM | eff) History
+moveSequenceSeveral :: forall eff. Int -> History -> Eff (SequenceEffects eff) History
 moveSequenceSeveral count history = do
     if count > 2
         then do
@@ -106,7 +110,7 @@ moveSequenceSeveral count history = do
                             pure history
 
 
-advanceHistoryFromPersonMove :: forall eff. History -> Move -> Eff (console :: CONSOLE, random :: RANDOM | eff) History
+advanceHistoryFromPersonMove :: forall eff. History -> Move -> Eff (SequenceEffects eff) History
 advanceHistoryFromPersonMove history move =
 
     advanceHistory count history move
@@ -119,7 +123,7 @@ advanceHistoryFromPersonMove history move =
                     0
 
 
-advanceHistory :: forall eff. Int -> History -> Move -> Eff (console :: CONSOLE, random :: RANDOM | eff) History
+advanceHistory :: forall eff. Int -> History -> Move -> Eff (SequenceEffects eff) History
 advanceHistory count history move = do
     let eiHistory = applyMoveOnHistory move history
     let count' = count + 1

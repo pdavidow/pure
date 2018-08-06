@@ -10,6 +10,7 @@ import BlackWhite (getItemColored, setItemColored)
 import BoardHTML (board_HTML)
 import ConfirmModalHTML (confirmModal_HTML)
 import Control.Monad.Aff (Aff, delay)
+import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Console (CONSOLE)
 import Control.Monad.Eff.Random (RANDOM)
@@ -29,12 +30,12 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Helper as HLPR
-import History (swapLast, undoHistoryOnce)
+import History (History, swapLast, undoHistoryOnce)
 import NavbarHTML (navbar_HTML)
 import Player (isPlayer_Person)
 import Query (Query(..))
 import SequenceState (SequenceStateRec, SequenceState(..), seqRec)
-import Sequencer (moveSequence, advanceHistoryFromPersonMove, mbCurrentPlayer)
+import Sequencer (SequenceEffects, moveSequence, advanceHistoryFromPersonMove, mbCurrentPlayer)
 import Settings (EditPlayer(..), defaultSettingsRec, settingsRecOn, toPlayers)
 import SettingsModalHTML (settingsModal_HTML)
 import State (State, initialState)
@@ -43,7 +44,7 @@ import Type.Data.Boolean (kind Boolean)
 import UnusedDiskHTML (unusedDisk_HTML)
 import ViewLib (setCssProp)
 
-type Effects eff = ( dom :: DOM, console :: CONSOLE, random :: RANDOM | eff )   
+type Effects eff = ( dom :: DOM, console :: CONSOLE, random :: RANDOM | eff ) -- todo merge DOM with SequenceEffects
 
 
 component :: forall eff. H.Component HH.HTML Query Unit Void (Aff (Effects eff))
@@ -106,8 +107,29 @@ component =
         srec = HLPR.sequenceStateRecOn state     
 
 
+    augmentHistory ::  (Unit -> Eff (SequenceEffects eff) History) -> H.ComponentDSL History
+    augmentHistory f = do
+        --H.modify (_ { isBlockingOnSearch = true } ) 
+        _ <- H.liftAff $ delay (Milliseconds 100.0) 
+        result <- H.liftEff $ f unit
+        --H.modify (_ { isBlockingOnSearch = false } )    
+        pure result 
+
+
+    f :: forall e. Aff ( dom :: DOM | e ) Unit
+    f = do
+        --H.modify (_ { isBlockingOnSearch = true } ) 
+        pure unit
+
+
     eval :: Query ~> H.ComponentDSL State Query Void (Aff (Effects eff))
-    eval = 
+    eval =  
+        let
+            f :: forall e. Aff ( dom :: DOM | e ) Unit
+            f = do
+                --H.modify (_ { isBlockingOnSearch = true } ) 
+                pure unit
+        in
         case _ of    
             MouseEnter_StartStopButton next -> do
                 H.modify (_ 
