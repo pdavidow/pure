@@ -154,6 +154,7 @@ component =
                 when (mouseDown_MoveSquare == Just x) do    
                     history <- H.gets _.history   
 
+                    -- todo refactor, better: fire event at search-time
                     H.modify (_ { isBlockingOnSearch = true } ) 
                     _ <- H.liftAff $ delay (Milliseconds 100.0) 
                     history' <- liftEff $ advanceHistoryFromPersonMove history rec.move    
@@ -204,6 +205,7 @@ component =
                     then do   
                         history <- H.gets _.history   
 
+                        -- todo refactor, better: fire event at search-time
                         H.modify (_ { isBlockingOnSearch = true } ) 
                         _ <- H.liftAff $ delay (Milliseconds 100.0)                                 
                         history' <- liftEff $ moveSequence history
@@ -269,6 +271,7 @@ component =
                 when (HLPR.isGameStarted sqState'') do    
                     history' <- H.gets _.history  -- retreive to play it safe     
 
+                    -- todo refactor, better: fire event at search-time
                     H.modify (_ { isBlockingOnSearch = true } )   
                     _ <- H.liftAff $ delay (Milliseconds 100.0)                     
                     history'' <- liftEff $ moveSequence history'
@@ -356,6 +359,7 @@ component =
             Click_ComputerStep next -> do
                 history <- H.gets _.history  
 
+                -- todo refactor, better: fire event at search-time
                 H.modify (_ { isBlockingOnSearch = true } ) 
                 _ <- H.liftAff $ delay (Milliseconds 100.0)                            
                 history' <- liftEff $ moveSequence history
