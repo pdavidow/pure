@@ -20,18 +20,14 @@ import Prelude
 
 import Board as B
 import ClassConstants as CC
-import Data.Lazy (Lazy, defer, force)
-import Data.List (List, concatMap, elem, filter, find, nub)
-import Data.Maybe (Maybe(..), fromJust, fromMaybe, isJust, maybe)
-import Disk (Color(..), toggleColor)
+import Data.List (elem)
+import Data.Maybe (Maybe(Just), isJust, maybe)
+import Disk (Color(..))
 import DisplaySquare as DSQ
 import GameState as GS
 import Helper as HLPR
-import Partial.Unsafe (unsafePartial)
-import Player (Player(..), PlayerType(..), Players)
-import Position (Position)
-import SequenceState (SequenceStateRec, seqRec)
-import Sequencer (unsafe_CurrentPlayer, unsafe_OpponentPlayer)
+import Player (Players)
+import SequenceState (seqRec)
 import State (State)
 
 

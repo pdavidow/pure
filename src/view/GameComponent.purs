@@ -64,7 +64,7 @@ component =
                 <> guard isEvent_MouseUp_Anywhere  
                     [ HE.onMouseUp $ HE.input_ $ MouseUp_Anywhere ]    
                 <> guard state.isBlockingOnSearch
-                    [ setCssProp "cursor" "wait" ]                       
+                    [ setCssProp "cursor" "wait" ] -- todo doesn't always work, such as click "Computer Step" button                      
             ) $  
             [ navbar_HTML state
             , HH.div
@@ -154,21 +154,12 @@ component =
                 when (mouseDown_MoveSquare == Just x) do    
                     history <- H.gets _.history   
 
-                    H.modify (_ 
-                        { isBlockingOnSearch = true
-                        }
-                    ) 
+                    H.modify (_ { isBlockingOnSearch = true } ) 
                     _ <- H.liftAff $ delay (Milliseconds 100.0) 
                     history' <- liftEff $ advanceHistoryFromPersonMove history rec.move    
-                    H.modify (_ 
-                        { isBlockingOnSearch = false
-                        }
-                    )                    
-                    H.modify (_ 
-                        { --isBlockingOnSearch = false
-                          history = history'
-                        }
-                    )                                   
+                    H.modify (_ { isBlockingOnSearch = false } )  
+
+                    H.modify (_ { history = history' } )                                                      
 
                 pure next       
 
@@ -211,8 +202,12 @@ component =
                 status_StartRestart' <-  H.gets _.status_StartRestart
                 if status_StartRestart' == Started
                     then do   
-                        history <- H.gets _.history         
+                        history <- H.gets _.history   
+
+                        H.modify (_ { isBlockingOnSearch = true } ) 
+                        _ <- H.liftAff $ delay (Milliseconds 100.0)                                 
                         history' <- liftEff $ moveSequence history
+                        H.modify (_ { isBlockingOnSearch = false } )   
 
                         H.modify (_ 
                             { isImminentGameStart = false
@@ -225,10 +220,7 @@ component =
                 pure next
 
             Click_Cancel_Restart next -> do
-                H.modify (_ 
-                    { status_StartRestart = Started
-                    }
-                )         
+                H.modify (_ { status_StartRestart = Started } )         
                 pure next
 
             Click_Confirm_Restart next -> do 
@@ -240,10 +232,7 @@ component =
                 history' <- H.gets _.history
                 let sqState' = NE.last history' 
                 let sqState'' = SequenceState (seqRec sqState') {players = keepPlayers}
-                H.modify (_ 
-                    { history = swapLast history' sqState''
-                    }
-                )                    
+                H.modify (_ { history = swapLast history' sqState'' } )                    
                 pure next
 
             Click_Settings_Open next -> do
@@ -258,10 +247,7 @@ component =
                 pure next
 
             Click_Settings_Save next -> do
-                H.modify (_ 
-                    { isShowModal_Confirm_Settings_Save = true 
-                    }
-                )        
+                H.modify (_ { isShowModal_Confirm_Settings_Save = true } )        
                 pure next            
 
             Click_Settings_Save_Confirm next -> do
@@ -281,44 +267,27 @@ component =
 
                 sqState'' <- H.get 
                 when (HLPR.isGameStarted sqState'') do    
-                    history' <- H.gets _.history  -- retreive to play it safe      
-                    H.modify (_ 
-                        { isBlockingOnSearch = true
-                        }
-                    )    
+                    history' <- H.gets _.history  -- retreive to play it safe     
+
+                    H.modify (_ { isBlockingOnSearch = true } )   
                     _ <- H.liftAff $ delay (Milliseconds 100.0)                     
                     history'' <- liftEff $ moveSequence history'
-                    H.modify (_ 
-                        { isBlockingOnSearch = false
-                        }
-                    ) 
+                    H.modify (_ { isBlockingOnSearch = false } ) 
 
-                    H.modify (_ 
-                        { history = history''
-                        }
-                    )              
+                    H.modify (_ { history = history'' } )              
 
                 pure next
 
             Click_Settings_Save_Cancel next -> do
-                H.modify (_ 
-                    { isShowModal_Confirm_Settings_Save = false
-                    }
-                )                
+                H.modify (_ { isShowModal_Confirm_Settings_Save = false } )                
                 pure next 
 
             Click_Settings_Cancel isPendingChanges next -> do
                 if isPendingChanges
                     then do
-                        H.modify (_ 
-                            { isShowModal_Confirm_Settings_Cancel = true
-                            }
-                        )
+                        H.modify (_ { isShowModal_Confirm_Settings_Cancel = true } )
                     else do
-                        H.modify (_ 
-                            { isShowModal_Settings = false
-                            }   
-                        )       
+                        H.modify (_ { isShowModal_Settings = false } )       
                 pure next
 
             Click_Settings_Cancel_Confirm next -> do
@@ -330,17 +299,11 @@ component =
                 pure next
 
             Click_Settings_Cancel_Cancel next -> do
-                H.modify (_ 
-                    { isShowModal_Confirm_Settings_Cancel = false
-                    }
-                )                
+                H.modify (_ { isShowModal_Confirm_Settings_Cancel = false } )                
                 pure next 
 
             Click_Settings_Reset next -> do
-                H.modify (_ 
-                    { isShowModal_Confirm_Settings_Reset = true 
-                    }
-                )                
+                H.modify (_ { isShowModal_Confirm_Settings_Reset = true } )                
                 pure next
 
             Click_Settings_Reset_Confirm next -> do
@@ -360,11 +323,7 @@ component =
 
             Click_Settings_selectedColor color next -> do 
                 settings <- H.gets _.settings
-
-                H.modify (_ 
-                    { settings = settings {selectedColor = color}
-                    }
-                )        
+                H.modify (_ { settings = settings {selectedColor = color} } )        
                 pure next
 
             ModifySettings color f next -> do
@@ -374,10 +333,7 @@ component =
                 let editPlayer = EditPlayer color $ f rec
                 let editPlayers' = setItemColored color editPlayers editPlayer
 
-                H.modify (_ 
-                    { settings = settings {players = editPlayers'}
-                    }
-                ) 
+                H.modify (_ { settings = settings {players = editPlayers'} } )                 
                 pure next          
 
             Undo next -> do
@@ -389,47 +345,23 @@ component =
                         pure next
 
                     Just history' -> do                    
-                        H.modify (_ 
-                            { history = history'
-                            }
-                        )
+                        H.modify (_ { history = history' } )
                         pure next    
 
-            Click_FlipCounts next -> do
-                H.modify (_ 
-                    { isBlockingOnSearch = true
-                    }
-                ) 
-                _ <- H.liftAff $ delay (Milliseconds 1000.0) 
-                H.modify (_ 
-                    { isBlockingOnSearch = false
-                    }
-                ) 
-        
+            Click_FlipCounts next -> do        
                 isShow_FlipCounts <- H.gets _.isShow_FlipCounts  
-                H.modify (_ 
-                    { isShow_FlipCounts = not isShow_FlipCounts
-                    }
-                )
+                H.modify (_ { isShow_FlipCounts = not isShow_FlipCounts } )
                 pure next
 
             Click_ComputerStep next -> do
-                history <- H.gets _.history   
-                H.modify (_ 
-                    { isBlockingOnSearch = true
-                    }
-                ) 
+                history <- H.gets _.history  
+
+                H.modify (_ { isBlockingOnSearch = true } ) 
                 _ <- H.liftAff $ delay (Milliseconds 100.0)                            
                 history' <- liftEff $ moveSequence history
-                H.modify (_ 
-                    { isBlockingOnSearch = false
-                    }
-                )   
+                H.modify (_ { isBlockingOnSearch = false } )   
 
-                H.modify (_ 
-                    { history = history'
-                    }
-                )         
+                H.modify (_ { history = history' } )         
                 pure next
 
             PreventDefault event next -> do

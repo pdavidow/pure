@@ -8,18 +8,10 @@ module Status
 import Prelude
 
 import Board as B
-import ClassConstants as CC
 import Data.Lazy (Lazy, defer, force)
-import Data.List (List, concatMap, elem, filter, find, nub)
-import Data.Maybe (Maybe(..), fromJust, fromMaybe)
-import Disk (Color(..), toggleColor)
 import GameState as GS
-import Partial.Unsafe (unsafePartial)
 import Player (Player(..), PlayerType(..), Players)
-import Position (Position)
-import SequenceState (SequenceStateRec)
 import Sequencer (unsafe_CurrentPlayer, unsafe_OpponentPlayer)
-import State (State)
 
 
 status :: Boolean -> Boolean -> Players -> GS.Tagged_GameState -> String
