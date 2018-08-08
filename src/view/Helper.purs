@@ -1,5 +1,6 @@
 module Helper
     ( gameStateOn
+    , lastGameState
     , isGameStarted
     , isGameEnded
     , isHistoryUndoable
@@ -29,9 +30,14 @@ lastSequenceStateRec history =
     seqRec $ lastSequenceState history
 
 
+lastGameState :: History -> Tagged_GameState
+lastGameState history =
+    (lastSequenceStateRec history).game
+
+
 gameStateOn :: State -> Tagged_GameState
 gameStateOn state = 
-    (lastSequenceStateRec state.history).game    
+    lastGameState state.history   
 
 
 sequenceStateOn :: State -> SequenceState

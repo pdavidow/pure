@@ -18,7 +18,8 @@ import Data.Record (equal)
 import Data.Tuple (Tuple(..))
 import Disk (Color(..), toggleColor)
 import GameState (Tagged_GameState(..), Core(..), StartGameState(..), MidGameState(..), EndedGameState(..), MidStatus(..), EndStatus(..), unusedDiskCounts_FromTaggedGameState, board_FromTaggedGameState, nextMoves_FromTaggedGameState, mbNextMoveColor_FromTaggedGameState, nextMovesFrom, makeStartGameState, makeStartGameStateOn, isForfeitTurn)
-import History (applyMoveOnHistory, makeHistory, swapLast, undoHistoryOnce)
+import Helper as HLPR
+import History (History, applyMoveOnHistory, makeHistory, swapLast, undoHistoryOnce)
 import Lib (haskellRange, mapTakeWhile)
 import MoveValidation (MoveValidationError(..))
 import Partial.Unsafe (unsafePartial)
@@ -526,7 +527,7 @@ main = runTest do
                 move1 = unsafePartial $ fromJust $ head moves1
 
                 history2 = unsafePartial $ fromRight $ applyMoveOnHistory move1 history1 
-                midGameState@(MidGameState {priorMove: _, status: status, nextMoves: _, core: _}) = unsafeMidGameStateFrom $ (seqRec (NE.last history2)).game     
+                midGameState@(MidGameState {priorMove: _, status: status, nextMoves: _, core: _}) = unsafeMidGameStateFrom $ HLPR.lastGameState history2      
 
             Assert.equal' "First move results in: Tagged_MidGameState, ForfeitTurn_Rule2" status ForfeitTurn_Rule2    
             Assert.equal' "Second move color is also Black" (mbNextMoveColor_FromTaggedGameState $ Tagged_MidGameState midGameState) $ Just Black
@@ -551,7 +552,7 @@ main = runTest do
                 move2 = unsafePartial $ fromJust $ head moves2
             
                 history3 = unsafePartial $ fromRight $ applyMoveOnHistory move2 history2
-                midGameState3@(MidGameState {priorMove: _, status: midStatus3, nextMoves: _, core: _}) = unsafeMidGameStateFrom $ (seqRec (NE.last history3)).game    
+                midGameState3@(MidGameState {priorMove: _, status: midStatus3, nextMoves: _, core: _}) = unsafeMidGameStateFrom $ HLPR.lastGameState history3   
            
                 (BlackWhite {black: bc1, white: wc1}) = unusedDiskCounts_FromTaggedGameState taggedGameState1
                 (BlackWhite {black: bc2, white: wc2}) = unusedDiskCounts_FromTaggedGameState taggedGameState2
@@ -647,103 +648,103 @@ main = runTest do
             let 
                 history1 = makeHistory
 
-                taggedGameState1 = (seqRec (NE.last history1)).game
+                taggedGameState1 = HLPR.lastGameState history1   
                 move1 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState1 -- black C4
                 history2 = unsafePartial $ fromRight $ applyMoveOnHistory move1 history1 
 
-                taggedGameState2 = (seqRec (NE.last history2)).game
+                taggedGameState2 = HLPR.lastGameState history2
                 move2 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState2 -- white C3
                 history3 = unsafePartial $ fromRight $ applyMoveOnHistory move2 history2
 
-                taggedGameState3 = (seqRec (NE.last history3)).game
+                taggedGameState3 = HLPR.lastGameState history3
                 move3 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState3 -- black C2
                 history4 = unsafePartial $ fromRight $ applyMoveOnHistory move3 history3
             
-                taggedGameState4 = (seqRec (NE.last history4)).game
+                taggedGameState4 = HLPR.lastGameState history4
                 move4 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState4 -- white B2
                 history5 = unsafePartial $ fromRight $ applyMoveOnHistory move4 history4
             
-                taggedGameState5 = (seqRec (NE.last history5)).game
+                taggedGameState5 = HLPR.lastGameState history5
                 move5 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState5 -- black A2
                 history6 = unsafePartial $ fromRight $ applyMoveOnHistory move5 history5
             
-                taggedGameState6 = (seqRec (NE.last history6)).game
+                taggedGameState6 = HLPR.lastGameState history6
                 move6 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState6 -- white A1
                 history7 = unsafePartial $ fromRight $ applyMoveOnHistory move6 history6
             
-                taggedGameState7 = (seqRec (NE.last history7)).game
+                taggedGameState7 = HLPR.lastGameState history7
                 move7 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState7 -- black D3
                 history8 = unsafePartial $ fromRight $ applyMoveOnHistory move7 history7
             
-                taggedGameState8 = (seqRec (NE.last history8)).game
+                taggedGameState8 = HLPR.lastGameState history8
                 move8 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState8 -- white A3
                 history9 = unsafePartial $ fromRight $ applyMoveOnHistory move8 history8
             
-                taggedGameState9 = (seqRec (NE.last history9)).game
+                taggedGameState9 = HLPR.lastGameState history9
                 move9 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState9 -- black B3
                 history10 = unsafePartial $ fromRight $ applyMoveOnHistory move9 history9
             
-                taggedGameState10 = (seqRec (NE.last history10)).game
+                taggedGameState10 = HLPR.lastGameState history10
                 move10 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState10 -- white D2
                 history11 = unsafePartial $ fromRight $ applyMoveOnHistory move10 history10
             
-                taggedGameState11 = (seqRec (NE.last history11)).game
+                taggedGameState11 = HLPR.lastGameState history11
                 move11 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState11 -- black B1
                 history12 = unsafePartial $ fromRight $ applyMoveOnHistory move11 history11
             
-                taggedGameState12 = (seqRec (NE.last history12)).game
+                taggedGameState12 = HLPR.lastGameState history12
                 move12 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState12 -- white C1
                 history13 = unsafePartial $ fromRight $ applyMoveOnHistory move12 history12
             
-                taggedGameState13 = (seqRec (NE.last history13)).game
+                taggedGameState13 = HLPR.lastGameState history13
                 move13 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState13 -- black D1
                 history14 = unsafePartial $ fromRight $ applyMoveOnHistory move13 history13
             
-                taggedGameState14 = (seqRec (NE.last history14)).game
+                taggedGameState14 = HLPR.lastGameState history14
                 move14 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState14 -- white E1
                 history15 = unsafePartial $ fromRight $ applyMoveOnHistory move14 history14
             
-                taggedGameState15 = (seqRec (NE.last history15)).game
+                taggedGameState15 = HLPR.lastGameState history15
                 move15 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState15 -- black E6
                 history16 = unsafePartial $ fromRight $ applyMoveOnHistory move15 history15
             
-                taggedGameState16 = (seqRec (NE.last history16)).game
+                taggedGameState16 = HLPR.lastGameState history16
                 move16 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState16 -- white E2
                 history17 = unsafePartial $ fromRight $ applyMoveOnHistory move16 history16
             
-                taggedGameState17 = (seqRec (NE.last history17)).game
+                taggedGameState17 = HLPR.lastGameState history17
                 move17 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState17 -- black F1
                 history18 = unsafePartial $ fromRight $ applyMoveOnHistory move17 history17
             
-                taggedGameState18 = (seqRec (NE.last history18)).game
+                taggedGameState18 = HLPR.lastGameState history18
                 move18 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState18 -- white F2
                 history19 = unsafePartial $ fromRight $ applyMoveOnHistory move18 history18
             
-                taggedGameState19 = (seqRec (NE.last history19)).game
+                taggedGameState19 = HLPR.lastGameState history19
                 move19 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState19 -- black F3
                 history20 = unsafePartial $ fromRight $ applyMoveOnHistory move19 history19
             
-                taggedGameState20 = (seqRec (NE.last history20)).game
+                taggedGameState20 = HLPR.lastGameState history20
                 move20 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState20 -- white G1
                 history21 = unsafePartial $ fromRight $ applyMoveOnHistory move20 history20
             
-                taggedGameState21 = (seqRec (NE.last history21)).game -- forfeit
+                taggedGameState21 = HLPR.lastGameState history21 -- forfeit
                 move21 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState21 -- white E3
                 history22 = unsafePartial $ fromRight $ applyMoveOnHistory move21 history21
             
-                taggedGameState22 = (seqRec (NE.last history22)).game -- forfeit
+                taggedGameState22 = HLPR.lastGameState history22 -- forfeit
                 move22 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState22 -- white F4
                 history23 = unsafePartial $ fromRight $ applyMoveOnHistory move22 history22
             
-                taggedGameState23 = (seqRec (NE.last history23)).game
+                taggedGameState23 = HLPR.lastGameState history23
                 move23 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState23 -- white G2
                 history24 = unsafePartial $ fromRight $ applyMoveOnHistory move23 history23
             
-                taggedGameState24 = (seqRec (NE.last history24)).game
+                taggedGameState24 = HLPR.lastGameState history24
                 move24 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState24 -- white G3
                 history25 = unsafePartial $ fromRight $ applyMoveOnHistory move24 history24
             
-                taggedGameState25 = (seqRec (NE.last history25)).game
+                taggedGameState25 = HLPR.lastGameState history25
                 move25 = unsafePartial $ fromJust $ head $ nextMoves_FromTaggedGameState taggedGameState25 -- black H1
                 history26 = unsafePartial $ fromRight $ applyMoveOnHistory move25 history25         
             
@@ -781,4 +782,3 @@ main = runTest do
     --                 # map (\ x -> flipCount $ diskFrom x)
 
     --         Assert.equal flippedCounts $ fromFoldable [1,2,3,4]
-                                    
