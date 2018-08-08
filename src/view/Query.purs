@@ -6,11 +6,15 @@ module Query
 import DOM.Event.Event (Event)
 import Disk (Color)
 import DisplaySquare (FilledOpponent_DisplaySquare, Move_DisplaySquare)
+import GameState (Tagged_GameState)
+import Halogen as H
 import Settings (EditPlayerTypeRec)   
 
 
 data Query a
-    = MouseEnter_StartStopButton a
+    = Init a
+    
+    | MouseEnter_StartStopButton a
     | MouseLeave_StartStopButton a
 
     | MouseEnter_MoveSquare Move_DisplaySquare a
@@ -47,6 +51,9 @@ data Query a
     | ModifySettings Color (EditPlayerTypeRec -> EditPlayerTypeRec) a
     | Click_Settings_selectedColor Color a    
     -----------
+
+    | Search_Prior Tagged_GameState (H.SubscribeStatus -> a)
+    | Search_After Tagged_GameState (H.SubscribeStatus -> a)
 
     | Undo a    
     | PreventDefault Event a    

@@ -13,7 +13,12 @@ import Control.Monad.Aff (Aff, delay)
 import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Console (CONSOLE)
 import Control.Monad.Eff.Random (RANDOM)
+
 import DOM (DOM)
+import DOM.HTML (window) as DOM
+import DOM.HTML.Types (htmlDocumentToDocument) as DOM
+import DOM.HTML.Window (document) as DOM
+
 import DOM.Classy.Event (preventDefault)
 import DashboardFooterHTML (dashboardFooter_HTML)
 import DashboardHTML (dashboard_HTML)
@@ -24,10 +29,13 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.Monoid (guard)
 import DisplaySquare (Move_DisplaySquare(..), FilledOpponent_DisplaySquare(..))
 import GameState (Tagged_GameState)
+
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Halogen.Query.EventSource as ES
+
 import Helper as HLPR
 import History (swapLast, undoHistoryOnce)
 import NavbarHTML (navbar_HTML)
@@ -48,10 +56,12 @@ type Effects eff = ( dom :: DOM, console :: CONSOLE, random :: RANDOM | eff )
 
 component :: forall eff. H.Component HH.HTML Query Unit Void (Aff (Effects eff))
 component =
-    H.component
+    H.lifecycleComponent
         { initialState: const initialState
         , render
         , eval
+        , initializer: Just (H.action Init) 
+        , finalizer: Nothing        
         , receiver: const Nothing
         }
     where
@@ -107,8 +117,15 @@ component =
 
 
     eval :: Query ~> H.ComponentDSL State Query Void (Aff (Effects eff))
-    eval = 
+    eval =
         case _ of    
+            Init next -> do
+                -- https://functionalprogramming.slack.com/archives/C717K38CE/p1533588314000197
+                document <- H.liftEff $ DOM.window >>= DOM.document <#> DOM.htmlDocumentToDocument
+                H.subscribe $ ES.eventSource (K.onKeyUp document) (Just <<< H.request <<< Search_Prior)
+                H.subscribe $ ES.eventSource (K.onKeyUp document) (Just <<< H.request <<< Search_After)
+                pure next
+
             MouseEnter_StartStopButton next -> do
                 H.modify (_ 
                     { isImminentGameStart = true
@@ -121,7 +138,7 @@ component =
                     { isImminentGameStart = false
                     }
                 )
-                pure next            
+                pure next      
 
             MouseEnter_MoveSquare x@(Move_DisplaySquare rec) next -> do
                 H.modify (_ 
@@ -153,13 +170,7 @@ component =
 
                 when (mouseDown_MoveSquare == Just x) do    
                     history <- H.gets _.history   
-
-                    -- todo refactor, better: fire event at search-time
-                    H.modify (_ { isBlockingOnSearch = true } ) 
-                    _ <- H.liftAff $ delay (Milliseconds 100.0) 
                     history' <- liftEff $ advanceHistoryFromPersonMove history rec.move    
-                    H.modify (_ { isBlockingOnSearch = false } )  
-
                     H.modify (_ { history = history' } )                                                      
 
                 pure next       
@@ -203,13 +214,8 @@ component =
                 status_StartRestart' <-  H.gets _.status_StartRestart
                 if status_StartRestart' == Started
                     then do   
-                        history <- H.gets _.history   
-
-                        -- todo refactor, better: fire event at search-time
-                        H.modify (_ { isBlockingOnSearch = true } ) 
-                        _ <- H.liftAff $ delay (Milliseconds 100.0)                                 
+                        history <- H.gets _.history                                   
                         history' <- liftEff $ moveSequence history
-                        H.modify (_ { isBlockingOnSearch = false } )   
 
                         H.modify (_ 
                             { isImminentGameStart = false
@@ -265,18 +271,12 @@ component =
                     , isShowModal_Settings = false
                     }
                 )    
-                _ <- H.liftAff $ delay (Milliseconds 100.0) -- give modals a chance to close
+                -- _ <- H.liftAff $ delay (Milliseconds 100.0) -- todo delete??? give modals a chance to close
 
                 sqState'' <- H.get 
                 when (HLPR.isGameStarted sqState'') do    
-                    history' <- H.gets _.history  -- retreive to play it safe     
-
-                    -- todo refactor, better: fire event at search-time
-                    H.modify (_ { isBlockingOnSearch = true } )   
-                    _ <- H.liftAff $ delay (Milliseconds 100.0)                     
+                    history' <- H.gets _.history  -- retreive to play it safe                        
                     history'' <- liftEff $ moveSequence history'
-                    H.modify (_ { isBlockingOnSearch = false } ) 
-
                     H.modify (_ { history = history'' } )              
 
                 pure next
@@ -357,16 +357,19 @@ component =
                 pure next
 
             Click_ComputerStep next -> do
-                history <- H.gets _.history  
-
-                -- todo refactor, better: fire event at search-time
-                H.modify (_ { isBlockingOnSearch = true } ) 
-                _ <- H.liftAff $ delay (Milliseconds 100.0)                            
+                history <- H.gets _.history                           
                 history' <- liftEff $ moveSequence history
-                H.modify (_ { isBlockingOnSearch = false } )   
-
                 H.modify (_ { history = history' } )         
                 pure next
+
+            Search_Prior taggedGameState reply -> do        
+                H.modify (_ { isBlockingOnSearch = true } ) 
+                _ <- H.liftAff $ delay (Milliseconds 100.0) -- allows UI to update
+                pure (reply H.Listening)
+
+            Search_After taggedGameState reply -> do        
+                H.modify (_ { isBlockingOnSearch = false } ) 
+                pure (reply H.Listening)               
 
             PreventDefault event next -> do
                 H.liftEff $ preventDefault event
