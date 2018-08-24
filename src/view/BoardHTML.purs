@@ -44,6 +44,7 @@ squares state =
         where
             gameState = HLPR.gameStateOn state
 
+
 renderSquare :: State -> DSQ.Tagged_DisplaySquare -> H.ComponentHTML Query
 renderSquare state taggedDisplaySquare =
     HH.figure

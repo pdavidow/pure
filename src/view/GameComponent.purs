@@ -73,7 +73,8 @@ component =
                 [ board_HTML state
                 , unusedDisk_HTML state
                 , dashboard_HTML state   
-                , dashboardFooter_HTML state                          
+                , dashboardFooter_HTML state      
+                , history_HTML state                    
                 ]   
             ] <> modals 
         where 

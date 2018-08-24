@@ -1,5 +1,10 @@
 /* https://css-tricks.com/difference-explicit-implicit-grids/ */
 
+/* todo parameterize */
+.game-grid {
+  display: grid;
+  grid-template-columns: 180, 80;
+}
 
 .board-grid {
     display: grid;
