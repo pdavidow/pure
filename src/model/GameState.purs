@@ -364,16 +364,16 @@ swapCore taggedGameState core =
         Tagged_EndedGameState (EndedGameState rec) -> 
             Tagged_EndedGameState $ EndedGameState $ rec {core = core}
 
-
-heuristic_Score :: Tagged_GameState -> Number 
-heuristic_Score taggedGameState = 
+-- https://functionalprogramming.slack.com/archives/C04NA444H/p1535147184000100
+heuristic_Score :: forall m. Monad m => Tagged_GameState -> m Number 
+heuristic_Score taggedGameState = do
     -- https://kartikkukreja.wordpress.com/2013/03/30/heuristic-function-for-reversiothello/
     -- Assume: boardSize == 8
     -- Negamax formulation
 
     case taggedGameState of
         Tagged_StartGameState _  -> 
-            0.0          
+            pure 0.0      
 
         Tagged_MidGameState x -> 
             let
@@ -389,10 +389,7 @@ heuristic_Score taggedGameState =
                                     (74.396 * heuristic_FrontierDisks nextMoveColor board) + 
                                         (10.0 * heuristic_DiskSquares nextMoveColor board)                        
             in
-                if (nextMoveColor == coreRec.currentPlayerColorForSearch) then
-                    score
-                else
-                    negate score 
+                pure $ negamaxFilter nextMoveColor coreRec.currentPlayerColorForSearch score
 
         Tagged_EndedGameState x@(EndedGameState rec) -> 
             let
@@ -401,11 +398,16 @@ heuristic_Score taggedGameState =
                 (Core coreRec) = core_FromTaggedGameState taggedGameState 
                 score = heuristic_PieceDifference finalMoveColor board
             in
-                if (finalMoveColor == coreRec.currentPlayerColorForSearch) then
-                    score
-                else
-                    negate score
+                pure $ negamaxFilter finalMoveColor coreRec.currentPlayerColorForSearch score
     where
+
+    negamaxFilter :: Color -> Color -> Number -> Number
+    negamaxFilter colorOfInterest currentPlayerColorForSearch score  = 
+        if (colorOfInterest == currentPlayerColorForSearch) then
+            score
+        else
+            negate score
+
 
     heuristic_PieceDifference :: Color -> Board -> Number 
     heuristic_PieceDifference myColor board = 
