@@ -389,10 +389,7 @@ heuristic_Score taggedGameState =
                                     (74.396 * heuristic_FrontierDisks nextMoveColor board) + 
                                         (10.0 * heuristic_DiskSquares nextMoveColor board)                        
             in
-                if (nextMoveColor == coreRec.currentPlayerColorForSearch) then
-                    score
-                else
-                    negate score 
+                negamaxFilter nextMoveColor coreRec.currentPlayerColorForSearch score
 
         Tagged_EndedGameState x@(EndedGameState rec) -> 
             let
@@ -401,11 +398,16 @@ heuristic_Score taggedGameState =
                 (Core coreRec) = core_FromTaggedGameState taggedGameState 
                 score = heuristic_PieceDifference finalMoveColor board
             in
-                if (finalMoveColor == coreRec.currentPlayerColorForSearch) then
-                    score
-                else
-                    negate score
+                negamaxFilter finalMoveColor coreRec.currentPlayerColorForSearch score
     where
+
+    negamaxFilter :: Color -> Color -> Number -> Number
+    negamaxFilter colorOfInterest currentPlayerColorForSearch score  = 
+        if (colorOfInterest == currentPlayerColorForSearch) then
+            score
+        else
+            negate score
+            
 
     heuristic_PieceDifference :: Color -> Board -> Number 
     heuristic_PieceDifference myColor board = 
